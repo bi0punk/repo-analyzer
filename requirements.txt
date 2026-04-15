@@ -1,2 +1,2 @@
-requests>=2.32.0
-python-dotenv>=1.0.1
+# MVP sin dependencias externas obligatorias.
+# Funciona con Python 3.10+ usando biblioteca estándar.

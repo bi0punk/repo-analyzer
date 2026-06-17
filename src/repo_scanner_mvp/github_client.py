@@ -33,7 +33,7 @@ class GitHubClient:
             )
         return response
 
-    def _paginate(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    def _paginate(self, path: str, params: dict[str, Any] | None = None, max_pages: int = 100) -> list[dict[str, Any]]:
         page = 1
         items: list[dict[str, Any]] = []
         while True:
@@ -49,6 +49,8 @@ class GitHubClient:
                 break
             if self.config.max_repos and len(items) >= self.config.max_repos:
                 return items[: self.config.max_repos]
+            if page >= max_pages:
+                break
             page += 1
         if self.config.max_repos:
             return items[: self.config.max_repos]

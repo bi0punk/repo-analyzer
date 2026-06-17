@@ -149,10 +149,15 @@ def maybe_generate_llm_summary(repo_facts: RepoFacts, findings: List[Finding], c
         "temperature": 0.2,
     }
 
+    api_key = os.getenv("REPO_AGENT_LLM_API_KEY", "")
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
     req = urllib.request.Request(
         endpoint.rstrip("/") + "/v1/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
 

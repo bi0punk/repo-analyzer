@@ -86,14 +86,14 @@ def load_config(env_file: str | None = None) -> AppConfig:
 
 
 def validate_config(config: AppConfig) -> None:
+    if not config.github.token:
+        raise ValueError("GITHUB_TOKEN is required")
+
     if config.github.scan_mode not in {"authenticated", "org", "user"}:
         raise ValueError("GITHUB_SCAN_MODE must be one of: authenticated, org, user")
 
     if config.github.scan_mode in {"org", "user"} and not config.github.owner:
         raise ValueError("GITHUB_OWNER is required when GITHUB_SCAN_MODE is org or user")
-
-    if not config.github.token:
-        raise ValueError("GITHUB_TOKEN is required")
 
     if config.github.per_page <= 0 or config.github.per_page > 100:
         raise ValueError("GITHUB_PER_PAGE must be between 1 and 100")

@@ -45,7 +45,7 @@ Esta versión añade una mejora clave sobre la v2:
 ## Ejecución
 
 ```bash
-cd repo_agent_mvp_v3
+cd repo-analyzer
 python3 analyze_repo.py /ruta/a/tu/repositorio --output-dir ./output --print-report
 ```
 
@@ -113,3 +113,18 @@ Este MVP todavía no:
 - agregar detección de dependencias y entrypoints por lenguaje
 - sumar patch generator para quick wins seguros
 - branch temporal y validación antes de patch
+
+## Escáner de repos de GitHub (segunda herramienta)
+
+Este repositorio incluye además `src/repo_scanner_mvp/`, un escáner que recorre
+los repos de un owner de GitHub y genera un reporte de estado/riesgo por repo.
+
+```bash
+cp .env.example .env   # completa GITHUB_TOKEN y config
+./run_scan.sh scan
+```
+
+Variables relevantes (ver `.env.example`): `GITHUB_TOKEN`, `GITHUB_OWNER`,
+`GITHUB_SCAN_MODE`, `GITHUB_REPO_ALLOWLIST`, `GITHUB_API_VERSION`,
+`GITHUB_API_BASE_URL`, así como la config del LLM opcional (`LLM_*`) y
+`OUTPUT_DIR`/`REPORT_TIMESTAMP_OVERRIDE`.

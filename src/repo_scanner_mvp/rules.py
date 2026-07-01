@@ -28,9 +28,7 @@ def evaluate_repo_status(
     has_main = "main" in branch_names
     has_master = "master" in branch_names
     has_dev = "dev" in branch_names
-    has_develop = "develop" in branch_names
     protected_main = any(branch.name == "main" and branch.protected for branch in branches)
-    protected_default = any(branch.name == default_branch and branch.protected for branch in branches)
 
     if archived:
         return ("archived", "low", ["skip_changes_archived_repo"])

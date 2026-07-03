@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
 def utc_timestamp_slug(override: str | None = None) -> str:
     if override:
         return override
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def ensure_directory(path: str | Path) -> Path:

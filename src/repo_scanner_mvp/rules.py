@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from repo_scanner_mvp.models import BranchSummary
-
 
 PREFERRED_BRANCH_ORDER = ["dev", "develop", "main", "master"]
 
@@ -55,9 +54,8 @@ def evaluate_repo_status(
         actions.append("review_default_branch_alignment")
         risk = "medium" if risk == "low" else risk
 
-    if has_dev and has_main and protected_main:
-        if default_branch in {"main", "dev"}:
-            return ("nearly_ready", risk, actions or ["validate_dev_then_pr_to_main"])
+    if has_dev and has_main and protected_main and default_branch in {"main", "dev"}:
+        return ("nearly_ready", risk, actions or ["validate_dev_then_pr_to_main"])
 
     if has_master and not has_main:
         return ("legacy_master_layout", risk, actions)

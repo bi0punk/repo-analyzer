@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import os
 from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
 
 EXCLUDED_DIRS = {
     ".git",
@@ -62,9 +62,7 @@ def should_exclude(path: Path, root: Path | None = None) -> bool:
         return True
     if rel.name in EXCLUDED_FILE_NAMES:
         return True
-    if rel.suffix.lower() in EXCLUDED_SUFFIXES:
-        return True
-    return False
+    return rel.suffix.lower() in EXCLUDED_SUFFIXES
 
 
 def iter_repo_files(root: Path) -> Iterable[Path]:
@@ -109,7 +107,7 @@ def count_excluded_files(root: Path) -> int:
     return total
 
 
-def extension_counts(files: Iterable[Path]) -> Dict[str, int]:
+def extension_counts(files: Iterable[Path]) -> dict[str, int]:
     counter: Counter[str] = Counter()
     for path in files:
         ext = path.suffix.lower() or "<no_ext>"
@@ -117,8 +115,8 @@ def extension_counts(files: Iterable[Path]) -> Dict[str, int]:
     return dict(counter.most_common())
 
 
-def largest_files(files: Iterable[Path], root: Path, limit: int = 10) -> List[Dict[str, object]]:
-    records: List[Tuple[int, Path]] = []
+def largest_files(files: Iterable[Path], root: Path, limit: int = 10) -> list[dict[str, object]]:
+    records: list[tuple[int, Path]] = []
     for path in files:
         try:
             size = path.stat().st_size
@@ -137,7 +135,7 @@ def largest_files(files: Iterable[Path], root: Path, limit: int = 10) -> List[Di
 
 
 def build_tree_preview(root: Path, max_depth: int = 3, max_entries_per_dir: int = 12) -> str:
-    lines: List[str] = [root.name + "/"]
+    lines: list[str] = [root.name + "/"]
 
     def walk(current: Path, prefix: str = "", depth: int = 0) -> None:
         if depth >= max_depth:

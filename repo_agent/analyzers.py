@@ -2,24 +2,22 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List
 
 from .models import Finding, RepoFacts
 from .scanner import read_text_file
-
 
 TEST_DIR_HINTS = {"tests", "test", "spec", "specs", "__tests__"}
 README_NAMES = {"readme.md", "readme.txt", "readme", "readme.generated.md"}
 
 
 class RepoAnalyzer:
-    def __init__(self, root: Path, all_files: List[Path], facts: RepoFacts) -> None:
+    def __init__(self, root: Path, all_files: list[Path], facts: RepoFacts) -> None:
         self.root = root
         self.all_files = all_files
         self.facts = facts
 
-    def analyze(self) -> List[Finding]:
-        findings: List[Finding] = []
+    def analyze(self) -> list[Finding]:
+        findings: list[Finding] = []
         findings.extend(self._readme_findings())
         findings.extend(self._project_shape_findings())
         findings.extend(self._test_findings())
@@ -31,7 +29,7 @@ class RepoAnalyzer:
         findings.extend(self._artifact_findings())
         findings.extend(self._documentation_findings())
 
-        deduped: List[Finding] = []
+        deduped: list[Finding] = []
         seen_ids = set()
         for finding in findings:
             if finding.id not in seen_ids:
@@ -47,8 +45,8 @@ class RepoAnalyzer:
                 return file_path
         return None
 
-    def _readme_findings(self) -> List[Finding]:
-        results: List[Finding] = []
+    def _readme_findings(self) -> list[Finding]:
+        results: list[Finding] = []
         readme_path = self._readme_path()
         if self.facts.readme_status == "missing":
             results.append(Finding(
@@ -135,8 +133,8 @@ class RepoAnalyzer:
             ))
         return results
 
-    def _project_shape_findings(self) -> List[Finding]:
-        findings: List[Finding] = []
+    def _project_shape_findings(self) -> list[Finding]:
+        findings: list[Finding] = []
         if self.facts.project_type == "server_rendered_web_app" and not self.facts.frameworks:
             findings.append(Finding(
                 id="shape-server-rendered-without-framework-clear",
@@ -174,8 +172,8 @@ class RepoAnalyzer:
             ))
         return findings
 
-    def _test_findings(self) -> List[Finding]:
-        results: List[Finding] = []
+    def _test_findings(self) -> list[Finding]:
+        results: list[Finding] = []
         test_files = [p for p in self.all_files if self._looks_like_test(p)]
         if not test_files:
             results.append(Finding(
@@ -213,7 +211,7 @@ class RepoAnalyzer:
             ))
         return results
 
-    def _ci_findings(self) -> List[Finding]:
+    def _ci_findings(self) -> list[Finding]:
         if self.facts.ci_systems:
             return []
         return [Finding(
@@ -232,8 +230,8 @@ class RepoAnalyzer:
             validation_steps=["Ejecutar localmente los comandos que correrá CI."],
         )]
 
-    def _structure_findings(self) -> List[Finding]:
-        findings: List[Finding] = []
+    def _structure_findings(self) -> list[Finding]:
+        findings: list[Finding] = []
         root_files = [p for p in self.all_files if p.parent == self.root]
         if len(root_files) > 18:
             findings.append(Finding(
@@ -255,8 +253,8 @@ class RepoAnalyzer:
             ))
         return findings
 
-    def _config_findings(self) -> List[Finding]:
-        findings: List[Finding] = []
+    def _config_findings(self) -> list[Finding]:
+        findings: list[Finding] = []
         if not self.facts.has_gitignore:
             findings.append(Finding(
                 id="repo-no-gitignore",
@@ -311,8 +309,8 @@ class RepoAnalyzer:
             ))
         return findings
 
-    def _large_files_findings(self) -> List[Finding]:
-        findings: List[Finding] = []
+    def _large_files_findings(self) -> list[Finding]:
+        findings: list[Finding] = []
         likely_source_files = [p for p in self.all_files if p.suffix.lower() in {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".java", ".html"}]
         giant_files = []
         for path in likely_source_files:
@@ -341,8 +339,8 @@ class RepoAnalyzer:
             ))
         return findings
 
-    def _entrypoint_findings(self) -> List[Finding]:
-        findings: List[Finding] = []
+    def _entrypoint_findings(self) -> list[Finding]:
+        findings: list[Finding] = []
         app_py = self.root / "app.py"
         if not app_py.exists():
             return findings
@@ -410,8 +408,8 @@ class RepoAnalyzer:
 
         return findings
 
-    def _artifact_findings(self) -> List[Finding]:
-        findings: List[Finding] = []
+    def _artifact_findings(self) -> list[Finding]:
+        findings: list[Finding] = []
         zip_files = [p for p in self.root.iterdir() if p.is_file() and p.suffix.lower() == ".zip"] if self.root.exists() else []
         if zip_files:
             findings.append(Finding(
@@ -433,8 +431,8 @@ class RepoAnalyzer:
             ))
         return findings
 
-    def _documentation_findings(self) -> List[Finding]:
-        findings: List[Finding] = []
+    def _documentation_findings(self) -> list[Finding]:
+        findings: list[Finding] = []
         md_files = [p for p in self.all_files if p.suffix.lower() == ".md"]
         if not md_files:
             findings.append(Finding(
@@ -461,12 +459,12 @@ class RepoAnalyzer:
         lower_name = path.name.lower()
         return lower_name.startswith("test_") or lower_name.endswith("_test.py") or lower_name.endswith(".spec.ts") or lower_name.endswith(".spec.js")
 
-    def _scan_for_secrets_like_patterns(self, limit: int = 6) -> List[str]:
+    def _scan_for_secrets_like_patterns(self, limit: int = 6) -> list[str]:
         patterns = [
             re.compile(r"(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][^'\"]{8,}['\"]"),
             re.compile(r"AKIA[0-9A-Z]{16}"),
         ]
-        matches: List[str] = []
+        matches: list[str] = []
         candidate_files = [p for p in self.all_files if p.suffix.lower() in {".py", ".js", ".ts", ".env", ".json", ".yaml", ".yml", ".ini", ".cfg"}]
         for path in candidate_files:
             text = read_text_file(path, max_bytes=80_000)

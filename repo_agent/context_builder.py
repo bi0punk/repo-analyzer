@@ -2,19 +2,19 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Dict, Any, List
+from typing import Any
 
 from .budgeting import estimate_tokens_from_text
 
 
-def summarize_python_file(text: str, max_snippets: int = 10) -> Dict[str, Any]:
+def summarize_python_file(text: str, max_snippets: int = 10) -> dict[str, Any]:
     lines = text.splitlines()
-    imports: List[Dict[str, Any]] = []
-    functions: List[Dict[str, Any]] = []
-    classes: List[Dict[str, Any]] = []
-    routes: List[Dict[str, Any]] = []
-    config_signals: List[Dict[str, Any]] = []
-    snippets: List[Dict[str, Any]] = []
+    imports: list[dict[str, Any]] = []
+    functions: list[dict[str, Any]] = []
+    classes: list[dict[str, Any]] = []
+    routes: list[dict[str, Any]] = []
+    config_signals: list[dict[str, Any]] = []
+    snippets: list[dict[str, Any]] = []
 
     for i, line in enumerate(lines, start=1):
         stripped = line.strip()
@@ -66,7 +66,7 @@ def summarize_python_file(text: str, max_snippets: int = 10) -> Dict[str, Any]:
     }
 
 
-def summarize_javascript_file(text: str, max_snippets: int = 10) -> Dict[str, Any]:
+def summarize_javascript_file(text: str, max_snippets: int = 10) -> dict[str, Any]:
     lines = text.splitlines()
     imports = []
     functions = []
@@ -107,7 +107,7 @@ def summarize_javascript_file(text: str, max_snippets: int = 10) -> Dict[str, An
     }
 
 
-def summarize_markup_or_style(text: str) -> Dict[str, Any]:
+def summarize_markup_or_style(text: str) -> dict[str, Any]:
     lines = text.splitlines()
     preview = "\n".join(lines[:160])
     return {
@@ -117,7 +117,7 @@ def summarize_markup_or_style(text: str) -> Dict[str, Any]:
     }
 
 
-def build_file_payload(relative_path: str, content: str, budget_tokens: int) -> Dict[str, Any]:
+def build_file_payload(relative_path: str, content: str, budget_tokens: int) -> dict[str, Any]:
     estimated_tokens = estimate_tokens_from_text(content)
     suffix = relative_path.lower().rsplit(".", 1)[-1] if "." in relative_path else ""
 
@@ -146,7 +146,7 @@ def build_file_payload(relative_path: str, content: str, budget_tokens: int) -> 
     }
 
 
-def build_selected_files_markdown(context_bundle: Dict[str, Any]) -> str:
+def build_selected_files_markdown(context_bundle: dict[str, Any]) -> str:
     lines = ["# Archivos seleccionados para contexto LLM", ""]
     primary = context_bundle.get("primary_file")
     if primary:
@@ -183,7 +183,7 @@ def build_selected_files_markdown(context_bundle: Dict[str, Any]) -> str:
     return "\n".join(lines).strip() + "\n"
 
 
-def build_prompt_from_bundle(project_brief: Dict[str, Any], context_bundle: Dict[str, Any]) -> str:
+def build_prompt_from_bundle(project_brief: dict[str, Any], context_bundle: dict[str, Any]) -> str:
     prompt_payload = {
         "project_brief": project_brief,
         "important_context": {

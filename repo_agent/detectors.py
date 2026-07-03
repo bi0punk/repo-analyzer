@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Set
 
 from .scanner import read_text_file
-
 
 README_CANDIDATES = {"readme.md", "readme.txt", "readme", "readme.generated.md"}
 
@@ -14,9 +13,9 @@ def _contains_any(text: str, tokens: list[str]) -> bool:
     return any(token.lower() in lowered for token in tokens)
 
 
-def detect_stack(root: Path, files: Iterable[Path]) -> Dict[str, object]:
+def detect_stack(root: Path, files: Iterable[Path]) -> dict[str, object]:
     file_list = list(files)
-    file_set: Set[str] = {str(p.relative_to(root)).replace("\\", "/") for p in file_list}
+    file_set: set[str] = {str(p.relative_to(root)).replace("\\", "/") for p in file_list}
     names = {Path(f).name for f in file_set}
 
     technologies = set()
@@ -196,7 +195,7 @@ def detect_stack(root: Path, files: Iterable[Path]) -> Dict[str, object]:
 
 
 
-def detect_languages_from_extensions(extension_count_map: Dict[str, int]) -> List[str]:
+def detect_languages_from_extensions(extension_count_map: dict[str, int]) -> list[str]:
     mapping = {
         ".py": "Python",
         ".js": "JavaScript",

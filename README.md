@@ -1,6 +1,47 @@
 # Repo Agent MVP v3
 
+[![CI](https://github.com/bi0punk/repo-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/bi0punk/repo-analyzer/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 MVP funcional para diagnosticar repositorios locales y preparar un paquete de contexto útil para un LLM.
+
+## Tabla de contenidos
+
+- [Qué detecta](#qué-detecta-esta-versión)
+- [Stack](#stack)
+- [Arquitectura](#arquitectura)
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [Tests](#tests)
+- [CI](#ci)
+- [LLM opcional](#llm-opcional-por-endpoint-compatible-openai)
+- [Limitaciones](#limitaciones-actuales)
+- [Escáner de GitHub](#escáner-de-repos-de-github-segunda-herramienta)
+- [Licencia](#licencia)
+
+## Stack
+
+- Python 3.12+
+- Biblioteca estándar (análisis local sin deps pesadas)
+- `requests` + `python-dotenv` (escáner GitHub)
+- LLM opcional vía endpoint OpenAI-compatible (llama.cpp)
+- Calidad: ruff (lint), pytest
+
+## Arquitectura
+
+```
+repo local ──► repo_agent.scanner (files/structure)
+                 │
+                 ├─► detectors (stack/languages/frameworks)
+                 ├─► analyzers (findings: README, tests, CI, secrets, …)
+                 ├─► importance (primary + supporting files)
+                 ├─► budgeting (token budget)
+                 └─► context_builder (bundle para LLM)
+                         │
+                         ▼
+                  reporter (markdown report) ──► optional LLM summary
+```
 
 Esta versión añade una mejora clave sobre la v2:
 
@@ -84,6 +125,41 @@ Toma `llm_context_prompt.txt` o `llm_context_bundle.json` y úsalo para pedir al
 - “propón quick wins y plan de refactor”
 - “explica el archivo principal y sus riesgos”
 
+## Instalación
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+## Uso
+
+```bash
+# Analizar un repo local
+./run_demo.sh /ruta/al/repositorio
+# o directamente:
+python analyze_repo.py /ruta/al/repositorio --print-report
+
+# Escáner de GitHub (requiere .env con GITHUB_TOKEN)
+./run_scan.sh scan
+```
+
+## Tests
+
+```bash
+pytest -q
+```
+
+Tests en `tests/test_rules.py` cubren las reglas del escáner GitHub (`src/repo_scanner_mvp/rules.py`).
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) sobre Python 3.12:
+
+- **lint** — `ruff check .`
+- **test** — `pip install -e ".[dev]"` + `pytest -q`
+
 ## LLM opcional por endpoint compatible OpenAI
 
 Si quieres que el propio MVP consulte un modelo local, por ejemplo `llama.cpp server`, exporta:
@@ -128,3 +204,7 @@ Variables relevantes (ver `.env.example`): `GITHUB_TOKEN`, `GITHUB_OWNER`,
 `GITHUB_SCAN_MODE`, `GITHUB_REPO_ALLOWLIST`, `GITHUB_API_VERSION`,
 `GITHUB_API_BASE_URL`, así como la config del LLM opcional (`LLM_*`) y
 `OUTPUT_DIR`/`REPORT_TIMESTAMP_OVERRIDE`.
+
+## Licencia
+
+MIT — ver [LICENSE](LICENSE).

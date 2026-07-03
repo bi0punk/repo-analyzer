@@ -4,7 +4,7 @@ from collections import Counter
 from typing import Any
 
 from repo_scanner_mvp.config import AppConfig
-from repo_scanner_mvp.github_client import GitHubClient, GitHubApiError
+from repo_scanner_mvp.github_client import GitHubApiError, GitHubClient
 from repo_scanner_mvp.llm_client import LLMClient
 from repo_scanner_mvp.models import BranchProtectionSummary, BranchSummary, RepoScanResult, ScanSummary
 from repo_scanner_mvp.rules import choose_primary_candidate_branch, evaluate_repo_status
@@ -53,9 +53,7 @@ class RepoScanner:
         if not self.config.github.include_forks and repo.get("fork"):
             return False
         allowlist = self.config.github.repo_allowlist
-        if allowlist and repo.get("name") not in allowlist:
-            return False
-        return True
+        return not (allowlist and repo.get("name") not in allowlist)
 
     def scan(self) -> tuple[ScanSummary, list[RepoScanResult]]:
         timestamp = utc_timestamp_slug(self.config.report_timestamp_override)

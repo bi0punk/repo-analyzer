@@ -19,11 +19,13 @@ dev = [
   "ruff>=0.6.0",
 ]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[project.scripts]
+repo-analyze = "repo_agent.cli:main"
+repo-scan = "repo_scanner_mvp.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools]
+packages = ["repo_agent", "repo_scanner_mvp"]
+package-dir = {"repo_scanner_mvp" = "src/repo_scanner_mvp"}
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

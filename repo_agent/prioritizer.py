@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from .models import Finding
-
 PRIORITY_BUCKETS = [
     (4.2, "P0 - inmediato"),
     (3.6, "P1 - siguiente paso"),
@@ -15,7 +13,3 @@ def assign_bucket(score: float) -> str:
         if score >= threshold:
             return label
     return "P3 - deuda técnica"
-
-
-def top_findings(findings: list[Finding], limit: int = 12) -> list[Finding]:
-    return findings[:limit]

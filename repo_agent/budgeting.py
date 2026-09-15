@@ -7,7 +7,8 @@ def estimate_tokens_from_text(text: str) -> int:
 
 def compute_budget(max_input_tokens: int, ratio: float) -> int:
     safe_ratio = max(0.05, min(ratio, 0.90))
-    return max(256, int(max_input_tokens * safe_ratio))
+    computed = max(256, int(max_input_tokens * safe_ratio))
+    return min(max_input_tokens, computed)
 
 
 def fits_in_budget(text: str, budget_tokens: int) -> bool:

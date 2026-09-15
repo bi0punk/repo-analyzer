@@ -2,11 +2,25 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any
+from typing import TypedDict
 
 from .scanner import read_text_file
 
-README_CANDIDATES = {"readme.md", "readme.txt", "readme", "readme.generated.md"}
+
+class StackInfo(TypedDict):
+    technologies: list[str]
+    frameworks: list[str]
+    package_managers: list[str]
+    ci_systems: list[str]
+    project_type: str
+    project_summary: str
+    readme_status: str
+    readme_path: str | None
+    route_count: int
+    has_templates_dir: bool
+    has_static_dir: bool
+    notable_entrypoints: list[str]
+    scan_notes: list[str]
 
 
 def _contains_any(text: str, tokens: list[str]) -> bool:
@@ -14,7 +28,7 @@ def _contains_any(text: str, tokens: list[str]) -> bool:
     return any(token.lower() in lowered for token in tokens)
 
 
-def detect_stack(root: Path, files: Iterable[Path]) -> dict[str, Any]:
+def detect_stack(root: Path, files: Iterable[Path]) -> StackInfo:
     file_list = list(files)
     file_set: set[str] = {str(p.relative_to(root)).replace("\\", "/") for p in file_list}
     names = {Path(f).name for f in file_set}

@@ -49,12 +49,6 @@ EXCLUDED_SUFFIXES = {
     ".log",
 }
 
-TEXT_EXTENSIONS = {
-    ".py", ".js", ".ts", ".tsx", ".jsx", ".json", ".yaml", ".yml", ".md", ".txt", ".toml",
-    ".ini", ".cfg", ".env", ".sh", ".bash", ".zsh", ".sql", ".java", ".go", ".rs", ".php",
-    ".rb", ".cs", ".c", ".cpp", ".h", ".hpp", ".html", ".css", ".scss", ".xml",
-}
-
 TEST_DIR_HINTS = {"tests", "test", "spec", "specs", "__tests__"}
 
 

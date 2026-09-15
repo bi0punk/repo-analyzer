@@ -9,9 +9,10 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
-python3 -m venv .venv
+if [[ ! -d .venv ]]; then
+  python3 -m venv .venv
+fi
 source .venv/bin/activate
-pip install --upgrade pip >/dev/null
-pip install -r requirements.txt >/dev/null
-export PYTHONPATH="$ROOT_DIR/src:${PYTHONPATH:-}"
-python3 main.py scan "$@"
+pip install -q -e ".[dev]"
+
+repo-scan "$@"

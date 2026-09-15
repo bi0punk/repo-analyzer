@@ -163,7 +163,17 @@ python analyze_repo.py /ruta/al/repositorio --print-report
 pytest -q
 ```
 
-Tests en `tests/test_rules.py` cubren las reglas del escáner GitHub (`src/repo_scanner_mvp/rules.py`).
+Cobertura (39 tests):
+
+- `tests/test_rules.py` — reglas del escáner GitHub (`src/repo_scanner_mvp/rules.py`).
+- `tests/test_repo_scanner.py` — exclusión de ruido, conteos, árbol y archivos grandes.
+- `tests/test_repo_importance.py` — scoring y selección de archivo principal/satélite.
+- `tests/test_repo_budgeting.py` — presupuesto de tokens.
+- `tests/test_repo_context_builder.py` — resumen de archivos y payload del bundle.
+- `tests/test_repo_llm_cli.py` — bundle, resumen LLM y flujo CLI.
+- `tests/test_repo_fixes.py` — detección unificada de tests, README raíz y entrypoints.
+
+Chequeos estáticos: `ruff check .` y `mypy repo_agent src`.
 
 ## CI
 

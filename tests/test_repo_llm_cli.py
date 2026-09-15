@@ -104,7 +104,7 @@ def test_cli_builds_report(tmp_path: Path, capsys):
     assert "[OK] Reporte generado" in captured.out
 
 
-def test_cli_extra_exclude_skips_dirs(tmp_path: Path, capsys):
+def test_cli_extra_exclude_skips_dirs(tmp_path: Path):
     from repo_agent.cli import main
 
     root = tmp_path / "proj"
@@ -116,13 +116,28 @@ def test_cli_extra_exclude_skips_dirs(tmp_path: Path, capsys):
         str(root),
         "--output-dir",
         str(output),
-        "--no-json",
         "--extra-exclude",
         "legacy",
     ])
     assert code == 0
-    captured = capsys.readouterr()
-    assert "legacy" not in captured.out
+    report = (output / "repo_diagnostic.md").read_text(encoding="utf-8")
+    diagnostics = (output / "repo_diagnostic.json").read_text(encoding="utf-8")
+    assert "legacy" not in report
+    assert "old.py" not in diagnostics
+
+
+def test_cli_without_extra_exclude_includes_dirs(tmp_path: Path):
+    from repo_agent.cli import main
+
+    root = tmp_path / "proj"
+    (root / "legacy").mkdir(parents=True)
+    (root / "app.py").write_text("from flask import Flask\napp = Flask(__name__)\n", encoding="utf-8")
+    (root / "legacy" / "old.py").write_text("x = 1\n", encoding="utf-8")
+    output = tmp_path / "out"
+    code = main([str(root), "--output-dir", str(output)])
+    assert code == 0
+    diagnostics = (output / "repo_diagnostic.json").read_text(encoding="utf-8")
+    assert "old.py" in diagnostics
 
 
 def test_cli_no_llm_summary_flag(tmp_path: Path, capsys):

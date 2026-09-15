@@ -58,7 +58,7 @@ def build_repo_facts(root: Path) -> tuple[RepoFacts, list[Path]]:
 
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Repo Agent MVP v3 - diagnóstico heurístico con bundle contextual para LLM")
     parser.add_argument("repo_path", help="Ruta del repositorio a analizar")
     parser.add_argument("--output-dir", default="./repo_agent_output", help="Directorio donde dejar los reportes")
@@ -68,7 +68,7 @@ def main() -> int:
     parser.add_argument("--important-file-budget-ratio", type=float, default=0.35, help="Fracción del presupuesto total reservada para el archivo principal")
     parser.add_argument("--secondary-file-budget-ratio", type=float, default=0.10, help="Fracción del presupuesto total reservada por archivo satélite")
     parser.add_argument("--max-secondary-files", type=int, default=2, help="Máximo de archivos satélite para el bundle de contexto")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     root = Path(args.repo_path).expanduser().resolve()
     if not root.exists() or not root.is_dir():

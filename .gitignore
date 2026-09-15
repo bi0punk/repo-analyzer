@@ -13,3 +13,8 @@ venv/
 .idea/
 .DS_Store
 *.log
+outputs/
+repo_agent_output/
+.coverage
+.coverage.*
+htmlcov/

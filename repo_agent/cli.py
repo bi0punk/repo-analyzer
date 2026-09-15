@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -19,8 +20,8 @@ from .scanner import (
 )
 
 
-def build_repo_facts(root: Path) -> tuple[RepoFacts, list[Path]]:
-    all_files = list(iter_repo_files(root))
+def build_repo_facts(root: Path, extra_excludes: set[str] | None = None, tree_depth: int = 3) -> tuple[RepoFacts, list[Path]]:
+    all_files = list(iter_repo_files(root, extra_excludes))
     ext_counts = extension_counts(all_files)
     stack = detect_stack(root, all_files)
     root_files_count = sum(1 for p in all_files if p.parent == root)
@@ -28,7 +29,7 @@ def build_repo_facts(root: Path) -> tuple[RepoFacts, list[Path]]:
     facts = RepoFacts(
         root_path=str(root.resolve()),
         total_files=len(all_files),
-        total_dirs=count_dirs(root),
+        total_dirs=count_dirs(root, extra_excludes),
         root_files_count=root_files_count,
         technologies=stack["technologies"],
         frameworks=stack["frameworks"],
@@ -49,9 +50,9 @@ def build_repo_facts(root: Path) -> tuple[RepoFacts, list[Path]]:
         main_languages=detect_languages_from_extensions(ext_counts),
         file_extension_counts=ext_counts,
         largest_files=largest_files(all_files, root, limit=10),
-        directory_tree_preview=build_tree_preview(root, max_depth=3, max_entries_per_dir=12),
+        directory_tree_preview=build_tree_preview(root, max_depth=tree_depth, max_entries_per_dir=12, extra_excludes=extra_excludes),
         notable_entrypoints=list(stack["notable_entrypoints"]),
-        noise_files_excluded=count_excluded_files(root),
+        noise_files_excluded=count_excluded_files(root, extra_excludes),
         scan_notes=list(stack["scan_notes"]),
     )
     return facts, all_files
@@ -68,6 +69,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--important-file-budget-ratio", type=float, default=0.35, help="Fracción del presupuesto total reservada para el archivo principal")
     parser.add_argument("--secondary-file-budget-ratio", type=float, default=0.10, help="Fracción del presupuesto total reservada por archivo satélite")
     parser.add_argument("--max-secondary-files", type=int, default=2, help="Máximo de archivos satélite para el bundle de contexto")
+    parser.add_argument("--tree-depth", type=int, default=3, help="Profundidad máxima del árbol de estructura en el reporte")
+    parser.add_argument("--extra-exclude", default="", help="Directorios adicionales a excluir, separados por coma (ej: legacy,archivos_viejos)")
+    parser.add_argument("--llm-summary", dest="llm_summary", action="store_true", default=None, help="Forzar generación de resumen LLM (requiere REPO_AGENT_LLM_ENDPOINT y REPO_AGENT_LLM_MODEL)")
+    parser.add_argument("--no-llm-summary", dest="llm_summary", action="store_false", help="Deshabilitar resumen LLM aunque haya endpoint configurado")
     args = parser.parse_args(argv)
 
     root = Path(args.repo_path).expanduser().resolve()
@@ -75,9 +80,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[ERROR] Ruta inválida: {root}", file=sys.stderr)
         return 1
 
+    extra_excludes = {d.strip() for d in args.extra_exclude.split(",") if d.strip()}
+
     state = AgentState()
 
-    facts, all_files = build_repo_facts(root)
+    facts, all_files = build_repo_facts(root, extra_excludes=extra_excludes, tree_depth=args.tree_depth)
     state.repo_facts = facts
     state.tool_results.append(ToolResult(
         tool_name="fingerprint",
@@ -125,7 +132,10 @@ def main(argv: list[str] | None = None) -> int:
         },
     ))
 
-    state.llm_summary = maybe_generate_llm_summary(facts, findings, state.llm_context_bundle)
+    should_summarize = args.llm_summary
+    if should_summarize is None:
+        should_summarize = bool(os.getenv("REPO_AGENT_LLM_ENDPOINT") and os.getenv("REPO_AGENT_LLM_MODEL"))
+    state.llm_summary = maybe_generate_llm_summary(facts, findings, state.llm_context_bundle) if should_summarize else None
     state.final_report_markdown = build_markdown_report(state)
 
     output_dir = Path(args.output_dir).expanduser().resolve()

@@ -56,53 +56,61 @@ TEXT_EXTENSIONS = {
 }
 
 
-def should_exclude(path: Path, root: Path | None = None) -> bool:
+def _excluded_dirs(extra_excludes: set[str] | None = None) -> set[str]:
+    return EXCLUDED_DIRS | (extra_excludes or set())
+
+
+def should_exclude(path: Path, root: Path | None = None, extra_excludes: set[str] | None = None) -> bool:
+    excluded = _excluded_dirs(extra_excludes)
     rel = path.relative_to(root) if root else path
-    if any(part in EXCLUDED_DIRS for part in rel.parts):
+    if any(part in excluded for part in rel.parts):
         return True
     if rel.name in EXCLUDED_FILE_NAMES:
         return True
     return rel.suffix.lower() in EXCLUDED_SUFFIXES
 
 
-def iter_repo_files(root: Path) -> Iterable[Path]:
+def iter_repo_files(root: Path, extra_excludes: set[str] | None = None) -> Iterable[Path]:
+    excluded = _excluded_dirs(extra_excludes)
     for current_root, dirs, files in os.walk(root):
         current_path = Path(current_root)
-        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
-        if should_exclude(current_path, root):
+        dirs[:] = [d for d in dirs if d not in excluded]
+        if should_exclude(current_path, root, extra_excludes):
             continue
         for name in files:
             file_path = current_path / name
-            if should_exclude(file_path, root):
+            if should_exclude(file_path, root, extra_excludes):
                 continue
             yield file_path
 
 
-def count_dirs(root: Path) -> int:
+def count_dirs(root: Path, extra_excludes: set[str] | None = None) -> int:
+    excluded = _excluded_dirs(extra_excludes)
     total = 0
     for current_root, dirs, _ in os.walk(root):
         current_path = Path(current_root)
-        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
-        if should_exclude(current_path, root):
+        dirs[:] = [d for d in dirs if d not in excluded]
+        if should_exclude(current_path, root, extra_excludes):
             continue
         total += len(dirs)
     return total
 
 
-def count_excluded_files(root: Path) -> int:
+def count_excluded_files(root: Path, extra_excludes: set[str] | None = None) -> int:
+    excluded = _excluded_dirs(extra_excludes)
     total = 0
     for current_root, dirs, files in os.walk(root):
         current_path = Path(current_root)
         keep_dirs = []
         for d in dirs:
-            if d in EXCLUDED_DIRS:
+            if d in excluded:
                 total += 1
             else:
                 keep_dirs.append(d)
         dirs[:] = keep_dirs
         for name in files:
             file_path = current_path / name
-            if should_exclude(file_path, root):
+            if should_exclude(file_path, root, extra_excludes):
                 total += 1
     return total
 
@@ -134,7 +142,12 @@ def largest_files(files: Iterable[Path], root: Path, limit: int = 10) -> list[di
     ]
 
 
-def build_tree_preview(root: Path, max_depth: int = 3, max_entries_per_dir: int = 12) -> str:
+def build_tree_preview(
+    root: Path,
+    max_depth: int = 3,
+    max_entries_per_dir: int = 12,
+    extra_excludes: set[str] | None = None,
+) -> str:
     lines: list[str] = [root.name + "/"]
 
     def walk(current: Path, prefix: str = "", depth: int = 0) -> None:
@@ -145,7 +158,7 @@ def build_tree_preview(root: Path, max_depth: int = 3, max_entries_per_dir: int 
         except OSError:
             return
 
-        entries = [e for e in entries if not should_exclude(e, root)]
+        entries = [e for e in entries if not should_exclude(e, root, extra_excludes)]
         display_entries = entries[:max_entries_per_dir]
 
         for index, entry in enumerate(display_entries):

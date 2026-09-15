@@ -108,6 +108,18 @@ python3 analyze_repo.py ~/Documentos/atacamahub_web \
   --max-secondary-files 2
 ```
 
+### Opciones adicionales
+
+```bash
+repo-analyze /ruta/al/repo --tree-depth 4 --extra-exclude "legacy,vendor"
+repo-analyze /ruta/al/repo --llm-summary        # fuerza resumen LLM
+repo-analyze /ruta/al/repo --no-llm-summary     # desactiva resumen LLM
+```
+
+- `--tree-depth N` — profundidad máxima del árbol de estructura en el reporte.
+- `--extra-exclude a,b` — directorios adicionales a excluir del escaneo (además de los defaults).
+- `--llm-summary` / `--no-llm-summary` — forzar o desactivar el resumen LLM (por defecto se genera solo si `REPO_AGENT_LLM_ENDPOINT` y `REPO_AGENT_LLM_MODEL` están definidos).
+
 ## Qué hace con el archivo principal
 
 - detecta candidatos como `app.py`, `main.py`, `server.py`, etc.
@@ -158,7 +170,8 @@ Tests en `tests/test_rules.py` cubren las reglas del escáner GitHub (`src/repo_
 GitHub Actions (`.github/workflows/ci.yml`) sobre Python 3.12:
 
 - **lint** — `ruff check .`
-- **test** — `pip install -e ".[dev]"` + `pytest -q`
+- **typecheck** — `mypy repo_agent src`
+- **test** — `pytest -q` (31 tests)
 
 ## LLM opcional por endpoint compatible OpenAI
 

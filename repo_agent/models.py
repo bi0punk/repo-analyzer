@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -82,8 +83,8 @@ class AgentState:
     tool_results: list[ToolResult] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
     llm_summary: str | None = None
-    llm_project_brief: dict[str, object] | None = None
-    llm_context_bundle: dict[str, object] | None = None
+    llm_project_brief: dict[str, Any] | None = None
+    llm_context_bundle: dict[str, Any] | None = None
     final_report_markdown: str = ""
 
     def to_dict(self) -> dict[str, object]:

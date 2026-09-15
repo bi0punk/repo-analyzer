@@ -17,6 +17,7 @@ dependencies = [
 dev = [
   "pytest>=8.0.0",
   "ruff>=0.6.0",
+  "mypy>=1.11.0",
 ]
 
 [project.scripts]
@@ -30,6 +31,10 @@ package-dir = {"repo_scanner_mvp" = "src/repo_scanner_mvp"}
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 120

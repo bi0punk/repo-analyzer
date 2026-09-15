@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 from .scanner import read_text_file
 
@@ -13,7 +14,7 @@ def _contains_any(text: str, tokens: list[str]) -> bool:
     return any(token.lower() in lowered for token in tokens)
 
 
-def detect_stack(root: Path, files: Iterable[Path]) -> dict[str, object]:
+def detect_stack(root: Path, files: Iterable[Path]) -> dict[str, Any]:
     file_list = list(files)
     file_set: set[str] = {str(p.relative_to(root)).replace("\\", "/") for p in file_list}
     names = {Path(f).name for f in file_set}

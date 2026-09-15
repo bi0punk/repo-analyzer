@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from .scanner import read_text_file
 
@@ -109,7 +110,7 @@ def score_supporting_file(path: Path, repo_root: Path) -> float:
     return score
 
 
-def select_primary_file(repo_root: Path, files: list[Path]) -> dict[str, object] | None:
+def select_primary_file(repo_root: Path, files: list[Path]) -> dict[str, Any] | None:
     candidates = []
     for path in files:
         if path.suffix.lower() not in {".py", ".js", ".ts", ".tsx", ".jsx"}:
@@ -139,7 +140,7 @@ def select_primary_file(repo_root: Path, files: list[Path]) -> dict[str, object]
     }
 
 
-def select_supporting_files(repo_root: Path, files: list[Path], primary_relative_path: str | None, max_files: int = 2) -> list[dict[str, object]]:
+def select_supporting_files(repo_root: Path, files: list[Path], primary_relative_path: str | None, max_files: int = 2) -> list[dict[str, Any]]:
     candidates = []
     for path in files:
         rel = path.relative_to(repo_root).as_posix()

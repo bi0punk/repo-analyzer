@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from .context_builder import build_selected_files_markdown
 from .models import AgentState, Finding
@@ -29,7 +30,7 @@ def findings_to_markdown(findings: list[Finding]) -> str:
 
 
 
-def brief_to_markdown(brief: dict[str, object] | None) -> str:
+def brief_to_markdown(brief: dict[str, Any] | None) -> str:
     if not brief:
         return "No se generó contexto preliminar para LLM."
 
@@ -48,7 +49,7 @@ def brief_to_markdown(brief: dict[str, object] | None) -> str:
 
 
 
-def important_context_to_markdown(context_bundle: dict[str, object] | None) -> str:
+def important_context_to_markdown(context_bundle: dict[str, Any] | None) -> str:
     if not context_bundle:
         return "## Contexto adicional para LLM\n\nNo se seleccionaron archivos principales."
 

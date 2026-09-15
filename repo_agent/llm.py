@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import urllib.request
+from pathlib import Path
+from typing import Any
 
 from .budgeting import compute_budget
 from .context_builder import build_file_payload, build_prompt_from_bundle
@@ -10,7 +12,7 @@ from .importance import select_primary_file, select_supporting_files
 from .models import Finding, RepoFacts
 
 
-def build_llm_project_brief(repo_facts: RepoFacts, findings: list[Finding]) -> dict[str, object]:
+def build_llm_project_brief(repo_facts: RepoFacts, findings: list[Finding]) -> dict[str, Any]:
     top_findings = [f.to_dict() for f in findings[:8]]
     antecedents_lines = [
         f"Proyecto analizado: {repo_facts.root_path}",
@@ -65,13 +67,13 @@ def build_llm_project_brief(repo_facts: RepoFacts, findings: list[Finding]) -> d
 def build_llm_context_bundle(
     repo_facts: RepoFacts,
     findings: list[Finding],
-    files: list,
-    root,
+    files: list[Path],
+    root: Path,
     max_input_tokens: int = 24000,
     primary_budget_ratio: float = 0.35,
     secondary_budget_ratio: float = 0.10,
     max_secondary_files: int = 2,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     project_brief = build_llm_project_brief(repo_facts, findings)
     primary_budget = compute_budget(max_input_tokens=max_input_tokens, ratio=primary_budget_ratio)
     secondary_budget = compute_budget(max_input_tokens=max_input_tokens, ratio=secondary_budget_ratio)
@@ -123,7 +125,7 @@ def build_llm_context_bundle(
     return bundle
 
 
-def maybe_generate_llm_summary(repo_facts: RepoFacts, findings: list[Finding], context_bundle: dict[str, object] | None = None) -> str | None:
+def maybe_generate_llm_summary(repo_facts: RepoFacts, findings: list[Finding], context_bundle: dict[str, Any] | None = None) -> str | None:
     endpoint = os.getenv("REPO_AGENT_LLM_ENDPOINT")
     model = os.getenv("REPO_AGENT_LLM_MODEL")
     if not endpoint or not model:

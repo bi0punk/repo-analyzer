@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from textwrap import dedent
+from typing import Any
 
 import requests
 
@@ -42,7 +43,7 @@ class LLMClient:
             """
         ).strip()
 
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.config.model,
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,

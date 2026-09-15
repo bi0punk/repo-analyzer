@@ -77,7 +77,7 @@ class RepoScanner:
                 branch_payloads = []
 
             for branch in branch_payloads:
-                branch_name = branch.get("name")
+                branch_name = str(branch.get("name") or "")
                 protected = bool(branch.get("protected", False))
                 protection_payload = None
                 if protected and branch_name:
@@ -132,10 +132,10 @@ class RepoScanner:
             )
 
             if self.config.llm.enabled:
-                summary, classification = self.llm.enrich_repo(scan_result)
-                scan_result.llm_summary = summary
+                llm_text, classification = self.llm.enrich_repo(scan_result)
+                scan_result.llm_summary = llm_text
                 scan_result.llm_policy_classification = classification
-                if summary is None and classification and classification.startswith("llm_error:"):
+                if llm_text is None and classification and classification.startswith("llm_error:"):
                     scan_result.scan_errors.append(classification)
                     scan_result.llm_policy_classification = None
 
@@ -143,7 +143,7 @@ class RepoScanner:
             status_counter[scan_result.repo_status] += 1
             risk_counter[scan_result.risk_level] += 1
 
-        summary = ScanSummary(
+        scan_summary = ScanSummary(
             timestamp=timestamp,
             scan_mode=self.config.github.scan_mode,
             owner=self.config.github.owner,
@@ -155,4 +155,4 @@ class RepoScanner:
             repo_status_counts=counter_to_dict(status_counter),
             risk_counts=counter_to_dict(risk_counter),
         )
-        return summary, results
+        return scan_summary, results

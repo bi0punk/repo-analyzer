@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -167,4 +168,5 @@ def maybe_generate_llm_summary(repo_facts: RepoFacts, findings: list[Finding], c
             data = json.loads(response.read().decode("utf-8"))
         return data["choices"][0]["message"]["content"].strip()
     except Exception as exc:  # pragma: no cover
-        return f"[LLM no disponible] No se pudo generar resumen: {exc}"
+        print(f"[WARN] No se pudo generar resumen LLM: {exc}", file=sys.stderr)
+        return None

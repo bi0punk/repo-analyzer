@@ -15,6 +15,7 @@ from .scanner import (
     count_dirs,
     count_excluded_files,
     extension_counts,
+    is_test_file,
     iter_repo_files,
     largest_files,
 )
@@ -40,7 +41,7 @@ def build_repo_facts(root: Path, extra_excludes: set[str] | None = None, tree_de
         has_readme=stack["readme_status"] in {"standard", "generated_only"},
         readme_status=str(stack["readme_status"]),
         readme_path=stack["readme_path"],
-        has_tests=any(any(part.lower() in {"tests", "test", "spec", "specs", "__tests__"} for part in p.parts) for p in all_files),
+        has_tests=any(is_test_file(p) for p in all_files),
         has_gitignore=(root / ".gitignore").exists(),
         has_docker=(root / "Dockerfile").exists() or (root / "docker-compose.yml").exists() or (root / "docker-compose.yaml").exists(),
         has_env_example=(root / ".env.example").exists() or (root / "env.example").exists() or (root / ".env.sample").exists(),

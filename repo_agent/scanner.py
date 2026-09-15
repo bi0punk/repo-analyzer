@@ -55,6 +55,21 @@ TEXT_EXTENSIONS = {
     ".rb", ".cs", ".c", ".cpp", ".h", ".hpp", ".html", ".css", ".scss", ".xml",
 }
 
+TEST_DIR_HINTS = {"tests", "test", "spec", "specs", "__tests__"}
+
+
+def is_test_file(path: Path) -> bool:
+    lower_parts = {part.lower() for part in path.parts}
+    if lower_parts & TEST_DIR_HINTS:
+        return True
+    lower_name = path.name.lower()
+    return (
+        lower_name.startswith("test_")
+        or lower_name.endswith("_test.py")
+        or lower_name.endswith(".spec.ts")
+        or lower_name.endswith(".spec.js")
+    )
+
 
 def _excluded_dirs(extra_excludes: set[str] | None = None) -> set[str]:
     return EXCLUDED_DIRS | (extra_excludes or set())

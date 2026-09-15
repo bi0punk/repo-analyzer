@@ -4,9 +4,8 @@ import re
 from pathlib import Path
 
 from .models import Finding, RepoFacts
-from .scanner import read_text_file
+from .scanner import is_test_file, read_text_file
 
-TEST_DIR_HINTS = {"tests", "test", "spec", "specs", "__tests__"}
 README_NAMES = {"readme.md", "readme.txt", "readme", "readme.generated.md"}
 
 
@@ -40,6 +39,9 @@ class RepoAnalyzer:
         return deduped
 
     def _readme_path(self) -> Path | None:
+        for file_path in self.all_files:
+            if file_path.parent == self.root and file_path.name.lower() in README_NAMES:
+                return file_path
         for file_path in self.all_files:
             if file_path.name.lower() in README_NAMES:
                 return file_path
@@ -174,7 +176,7 @@ class RepoAnalyzer:
 
     def _test_findings(self) -> list[Finding]:
         results: list[Finding] = []
-        test_files = [p for p in self.all_files if self._looks_like_test(p)]
+        test_files = [p for p in self.all_files if is_test_file(p)]
         if not test_files:
             results.append(Finding(
                 id="quality-no-tests",
@@ -341,23 +343,29 @@ class RepoAnalyzer:
 
     def _entrypoint_findings(self) -> list[Finding]:
         findings: list[Finding] = []
-        app_py = self.root / "app.py"
-        if not app_py.exists():
+        entrypoints = [rel for rel in self.facts.notable_entrypoints if rel]
+        texts: dict[str, str] = {}
+        for rel in entrypoints:
+            path = self.root / rel
+            if path.exists():
+                texts[rel] = read_text_file(path, max_bytes=500_000)
+        if not texts:
             return findings
 
-        text = read_text_file(app_py, max_bytes=500_000)
-        line_count = text.count("\n") + 1 if text else 0
-        route_count = text.count("@app.route") + text.count("@bp.route")
-        render_calls = text.count("render_template(")
+        largest_rel = max(texts, key=lambda rel: texts[rel].count("\n"))
+        largest_text = texts[largest_rel]
+        line_count = largest_text.count("\n") + 1
+        route_count = sum(text.count("@app.route") + text.count("@bp.route") for text in texts.values())
+        render_calls = sum(text.count("render_template(") for text in texts.values())
 
         if line_count > 400:
             findings.append(Finding(
                 id="entrypoint-app-py-large",
-                title="app.py concentra mucha lógica",
+                title=f"{largest_rel} concentra mucha lógica",
                 category="architecture",
                 description="El punto de entrada principal es grande y probablemente mezcla rutas, render, configuración y lógica de negocio.",
-                evidence=[f"app.py tiene aproximadamente {line_count} líneas."],
-                affected_files=["app.py"],
+                evidence=[f"{largest_rel} tiene aproximadamente {line_count} líneas."],
+                affected_files=[largest_rel],
                 urgency=3,
                 impact=4,
                 ease=2,
@@ -372,11 +380,11 @@ class RepoAnalyzer:
         if route_count >= 8:
             findings.append(Finding(
                 id="entrypoint-many-routes-one-file",
-                title="Múltiples rutas centralizadas en un solo archivo",
+                title="Múltiples rutas centralizadas en pocos archivos",
                 category="architecture",
-                description="Se detectaron varias rutas en app.py, lo que suele anticipar acoplamiento y escalabilidad limitada.",
+                description="Se detectaron varias rutas en los entrypoints, lo que suele anticipar acoplamiento y escalabilidad limitada.",
                 evidence=[f"Rutas detectadas aproximadamente: {route_count}", f"Render templates detectados: {render_calls}"],
-                affected_files=["app.py"],
+                affected_files=list(texts.keys()),
                 urgency=3,
                 impact=4,
                 ease=2,
@@ -388,13 +396,13 @@ class RepoAnalyzer:
                 validation_steps=["Verificar registro correcto de rutas tras modularizar."],
             ))
 
-        if "debug=True" in text.replace(" ", ""):
+        if any("debug=True" in text.replace(" ", "") for text in texts.values()):
             findings.append(Finding(
                 id="entrypoint-debug-true",
                 title="Modo debug explícito en código",
                 category="security",
-                description="Se detectó debug=True directamente en el código del entrypoint.",
-                affected_files=["app.py"],
+                description="Se detectó debug=True directamente en el código de los entrypoints.",
+                affected_files=list(texts.keys()),
                 urgency=4,
                 impact=4,
                 ease=4,
@@ -451,13 +459,6 @@ class RepoAnalyzer:
                 validation_steps=["Mantener la documentación alineada con el comportamiento real del repo."],
             ))
         return findings
-
-    def _looks_like_test(self, path: Path) -> bool:
-        lower_parts = {part.lower() for part in path.parts}
-        if lower_parts & TEST_DIR_HINTS:
-            return True
-        lower_name = path.name.lower()
-        return lower_name.startswith("test_") or lower_name.endswith("_test.py") or lower_name.endswith(".spec.ts") or lower_name.endswith(".spec.js")
 
     def _scan_for_secrets_like_patterns(self, limit: int = 6) -> list[str]:
         patterns = [

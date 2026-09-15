@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 from repo_agent.llm import build_llm_context_bundle, build_llm_project_brief, maybe_generate_llm_summary
 from repo_agent.models import Finding, RepoFacts
@@ -55,12 +56,32 @@ def test_maybe_generate_llm_summary_requires_env(monkeypatch):
     assert maybe_generate_llm_summary(_facts(), _findings()) is None
 
 
-def test_maybe_generate_llm_summary_on_error(monkeypatch):
-    monkeypatch.setenv("REPO_AGENT_LLM_ENDPOINT", "http://127.0.0.1:9")
+def test_maybe_generate_llm_summary_on_error_returns_none(monkeypatch, capsys):
+    monkeypatch.setenv("REPO_AGENT_LLM_ENDPOINT", "http://127.0.0.1:8080")
     monkeypatch.setenv("REPO_AGENT_LLM_MODEL", "qwen")
-    result = maybe_generate_llm_summary(_facts(), _findings())
-    assert result is not None
-    assert "no disponible" in result or "[LLM no disponible]" in result
+    with patch("repo_agent.llm.urllib.request.urlopen", side_effect=OSError("boom")):
+        result = maybe_generate_llm_summary(_facts(), _findings())
+    assert result is None
+    captured = capsys.readouterr()
+    assert "No se pudo generar resumen LLM" in captured.err
+
+
+def test_maybe_generate_llm_summary_parses_response(monkeypatch):
+    monkeypatch.setenv("REPO_AGENT_LLM_ENDPOINT", "http://127.0.0.1:8080")
+    monkeypatch.setenv("REPO_AGENT_LLM_MODEL", "qwen")
+    class _FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b'{"choices": [{"message": {"content": "resumen"}}]}'
+
+    with patch("repo_agent.llm.urllib.request.urlopen", return_value=_FakeResponse()):
+        result = maybe_generate_llm_summary(_facts(), _findings())
+    assert result == "resumen"
 
 
 def test_cli_builds_report(tmp_path: Path, capsys):

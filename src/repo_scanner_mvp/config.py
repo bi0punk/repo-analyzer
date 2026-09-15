@@ -61,7 +61,7 @@ def load_config(env_file: str | None = None) -> AppConfig:
         include_forks=bool_env(os.getenv("GITHUB_INCLUDE_FORKS"), default=True),
         per_page=int(os.getenv("GITHUB_PER_PAGE", "100")),
         max_repos=int(os.getenv("GITHUB_MAX_REPOS", "0")),
-        api_version=os.getenv("GITHUB_API_VERSION", "2026-03-10").strip(),
+        api_version=os.getenv("GITHUB_API_VERSION", "2022-11-28").strip(),
         api_base_url=os.getenv("GITHUB_API_BASE_URL", "https://api.github.com").rstrip("/"),
         repo_allowlist=repo_allowlist,
     )

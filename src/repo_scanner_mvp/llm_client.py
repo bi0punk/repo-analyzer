@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from textwrap import dedent
-from typing import Any
 
-import requests
-
+from repo_agent.llm import chat_completion
 from repo_scanner_mvp.config import LLMConfig
 from repo_scanner_mvp.models import RepoScanResult
 
@@ -17,7 +15,6 @@ class LLMClient:
         if not self.config.enabled:
             return (None, None)
 
-        url = f"{self.config.base_url}{self.config.chat_path}"
         prompt = dedent(
             f"""
             Eres un analista técnico de gobierno de repositorios.
@@ -43,21 +40,20 @@ class LLMClient:
             """
         ).strip()
 
-        payload: dict[str, Any] = {
-            "model": self.config.model,
-            "temperature": self.config.temperature,
-            "max_tokens": self.config.max_tokens,
-            "messages": [
-                {"role": "system", "content": "Responde en español, conciso y técnico."},
-                {"role": "user", "content": prompt},
-            ],
-        }
+        messages = [
+            {"role": "system", "content": "Responde en español, conciso y técnico."},
+            {"role": "user", "content": prompt},
+        ]
 
         try:
-            response = requests.post(url, json=payload, timeout=self.config.timeout_seconds)
-            response.raise_for_status()
-            data = response.json()
-            content = data["choices"][0]["message"]["content"].strip()
+            content = chat_completion(
+                url=f"{self.config.base_url}{self.config.chat_path}",
+                model=self.config.model,
+                messages=messages,
+                temperature=self.config.temperature,
+                max_tokens=self.config.max_tokens,
+                timeout=self.config.timeout_seconds,
+            )
         except Exception as exc:  # noqa: BLE001
             return (None, f"llm_error: {exc}")
 

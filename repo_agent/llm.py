@@ -135,15 +135,22 @@ class LLMError(RuntimeError):
     """Error de configuración o comunicación con el endpoint LLM."""
 
 
-def build_llm_endpoint_url(endpoint: str) -> str:
+def get_base_endpoint(endpoint: str) -> str:
     parsed = urlparse(endpoint)
     if parsed.scheme not in ALLOWED_LLM_SCHEMES or not parsed.hostname:
         raise LLMError(f"Endpoint LLM no permitido: {endpoint!r} (solo http/https)")
-    return endpoint.rstrip("/") + "/v1/chat/completions"
+    return endpoint.rstrip("/")
+
+
+def validate_chat_url(url: str) -> str:
+    parsed = urlparse(url)
+    if parsed.scheme not in ALLOWED_LLM_SCHEMES or not parsed.hostname:
+        raise LLMError(f"URL de chat LLM no permitida: {url!r} (solo http/https)")
+    return url
 
 
 def chat_completion(
-    endpoint: str,
+    url: str,
     model: str,
     messages: list[dict[str, Any]],
     api_key: str = "",
@@ -165,7 +172,7 @@ def chat_completion(
         headers["Authorization"] = f"Bearer {api_key}"
 
     response = requests.post(
-        build_llm_endpoint_url(endpoint),
+        validate_chat_url(url),
         json=payload,
         headers=headers,
         timeout=timeout,
@@ -198,7 +205,7 @@ def maybe_generate_llm_summary(repo_facts: RepoFacts, findings: list[Finding], c
 
     try:
         return chat_completion(
-            endpoint=endpoint,
+            url=f"{get_base_endpoint(endpoint)}/v1/chat/completions",
             model=model,
             messages=messages,
             api_key=os.getenv("REPO_AGENT_LLM_API_KEY", ""),

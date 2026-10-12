@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -40,7 +39,6 @@ class AppConfig:
     llm: LLMConfig
     output_dir: str
     report_timestamp_override: str | None
-    project_root: Path
 
 
 def load_config(env_file: str | None = None) -> AppConfig:
@@ -81,7 +79,6 @@ def load_config(env_file: str | None = None) -> AppConfig:
         llm=llm,
         output_dir=os.getenv("OUTPUT_DIR", "./outputs").strip(),
         report_timestamp_override=os.getenv("REPORT_TIMESTAMP_OVERRIDE", "").strip() or None,
-        project_root=Path.cwd(),
     )
 
 

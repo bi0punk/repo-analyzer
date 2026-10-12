@@ -80,34 +80,32 @@ Salidas generadas por el analizador:
 
 ```
 repo-analyzer/
-├── analyze_repo.py             # Entry point del analizador local
-├── main.py
 ├── repo_agent/
 │   ├── analyzers.py            # Findings (README, tests, CI, secretos, …)
 │   ├── budgeting.py            # Presupuesto de tokens
-│   ├── cli.py                  # CLI (repo-analyze)
+│   ├── cli.py                  # CLI unificada (repo-analyzer analyze|scan)
 │   ├── context_builder.py      # Bundle para LLM
 │   ├── detectors.py            # Stack/lenguajes/frameworks
 │   ├── importance.py           # Archivo principal + satélites
-│   ├── llm.py                  # Resumen LLM opcional
+│   ├── llm.py                  # Cliente LLM compartido (requests, http/https)
 │   ├── models.py
 │   ├── prioritizer.py
 │   ├── reporter.py             # Reportes markdown/JSON
 │   └── scanner.py              # Escaneo de estructura
 ├── src/repo_scanner_mvp/       # Escáner de repos de GitHub
-│   ├── cli.py                  # CLI (repo-scan)
+│   ├── cli.py
 │   ├── config.py
 │   ├── github_client.py
-│   ├── llm_client.py
+│   ├── llm_client.py           # Delega en repo_agent.llm (implementación única)
 │   ├── models.py
 │   ├── report_writer.py
 │   ├── rules.py
 │   ├── scanner.py
 │   └── utils.py
-├── run_demo.sh                 # Ejecuta análisis de demo
-├── run_scan.sh                 # Ejecuta escáner GitHub
-├── tests/                      # 39 tests
-├── .github/workflows/ci.yml
+├── run_demo.sh                 # repo-analyzer analyze de demo
+├── run_scan.sh                 # repo-analyzer scan
+├── tests/                      # 46 tests
+├── .github/workflows/ci.yml    # lint · typecheck · security · test
 ├── .env.example
 ├── pyproject.toml
 ├── LICENSE
@@ -122,12 +120,14 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
+La CLI se instala como `repo-analyzer` con dos subcomandos: `analyze` (repo local) y `scan` (GitHub).
+
 ## Uso
 
 ### Analizar un repo local
 
 ```bash
-python3 analyze_repo.py /ruta/a/tu/repositorio --output-dir ./output --print-report
+repo-analyzer analyze /ruta/a/tu/repositorio --output-dir ./output --print-report
 ```
 
 O bien:
@@ -139,7 +139,7 @@ O bien:
 ### Ejemplo con control del presupuesto LLM
 
 ```bash
-python3 analyze_repo.py ~/Documentos/atacamahub_web \
+repo-analyzer analyze ~/Documentos/atacamahub_web \
   --output-dir ./output \
   --print-report \
   --llm-max-input-tokens 24000 \
@@ -151,9 +151,9 @@ python3 analyze_repo.py ~/Documentos/atacamahub_web \
 ### Opciones adicionales
 
 ```bash
-repo-analyze /ruta/al/repo --tree-depth 4 --extra-exclude "legacy,vendor"
-repo-analyze /ruta/al/repo --llm-summary        # fuerza resumen LLM
-repo-analyze /ruta/al/repo --no-llm-summary     # desactiva resumen LLM
+repo-analyzer analyze /ruta/al/repo --tree-depth 4 --extra-exclude "legacy,vendor"
+repo-analyzer analyze /ruta/al/repo --llm-summary        # fuerza resumen LLM
+repo-analyzer analyze /ruta/al/repo --no-llm-summary     # desactiva resumen LLM
 ```
 
 - `--tree-depth N` — profundidad máxima del árbol de estructura en el reporte.
@@ -180,7 +180,7 @@ Toma `llm_context_prompt.txt` o `llm_context_bundle.json` y úsalo para pedir al
 
 ```bash
 cp .env.example .env   # completa GITHUB_TOKEN y config
-./run_scan.sh scan
+./run_scan.sh          # = repo-analyzer scan
 ```
 
 ## Configuración
@@ -224,9 +224,10 @@ pip install -e ".[dev]"
 pytest -q
 ruff check .
 mypy repo_agent src
+bandit -q -r repo_agent src/repo_scanner_mvp
 ```
 
-Cobertura (39 tests):
+Cobertura (46 tests):
 
 - `tests/test_rules.py` — reglas del escáner GitHub.
 - `tests/test_repo_scanner.py` — exclusión de ruido, conteos, árbol y archivos grandes.
@@ -235,8 +236,9 @@ Cobertura (39 tests):
 - `tests/test_repo_context_builder.py` — resumen de archivos y payload del bundle.
 - `tests/test_repo_llm_cli.py` — bundle, resumen LLM y flujo CLI.
 - `tests/test_repo_fixes.py` — detección unificada de tests, README raíz y entrypoints.
+- `tests/test_repo_shared_llm_cli.py` — cliente LLM compartido, validación de esquema y CLI unificada.
 
-GitHub Actions (`.github/workflows/ci.yml`) sobre Python 3.12 con tres jobs independientes: `lint` (ruff), `typecheck` (mypy) y `test` (pytest).
+GitHub Actions (`.github/workflows/ci.yml`) sobre Python 3.12 con cuatro jobs: `lint` (ruff), `typecheck` (mypy), `security` (bandit + vulture) y `test` (pytest). Corre sobre `dev` y `main`.
 
 ## Roadmap
 

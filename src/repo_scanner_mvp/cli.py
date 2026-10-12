@@ -11,10 +11,9 @@ from repo_scanner_mvp.scanner import RepoScanner
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="repo-scanner-mvp",
+        prog="repo-analyzer scan",
         description="Scan GitHub repositories and generate baseline governance reports.",
     )
-    parser.add_argument("command", choices=["scan"], help="Command to execute")
     parser.add_argument("--env-file", default=".env", help="Path to .env file")
     parser.add_argument(
         "--output-dir",
@@ -43,14 +42,16 @@ def run_scan(env_file: str, output_dir: str | None) -> int:
     return 0
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
-        if args.command == "scan":
-            raise SystemExit(run_scan(env_file=args.env_file, output_dir=args.output_dir))
-        raise SystemExit(1)
+        return run_scan(env_file=args.env_file, output_dir=args.output_dir)
     except Exception as exc:  # noqa: BLE001
         print(f"[ERROR] {exc}", file=sys.stderr)
-        raise SystemExit(1) from exc
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

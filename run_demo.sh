@@ -6,7 +6,7 @@ if [[ $# -lt 1 ]]; then
   exit 1
 fi
 
-python3 analyze_repo.py "$1" \
+repo-analyzer analyze "$1" \
   --output-dir ./output \
   --print-report \
   --llm-max-input-tokens 24000 \

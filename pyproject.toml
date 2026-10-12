@@ -21,8 +21,7 @@ dev = [
 ]
 
 [project.scripts]
-repo-analyze = "repo_agent.cli:main"
-repo-scan = "repo_scanner_mvp.cli:main"
+repo-analyzer = "repo_agent.cli:main"
 
 [tool.setuptools]
 packages = ["repo_agent", "repo_scanner_mvp"]

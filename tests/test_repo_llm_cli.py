@@ -93,6 +93,7 @@ def test_cli_builds_report(tmp_path: Path, capsys):
     (root / "README.md").write_text("# Proyecto\n", encoding="utf-8")
     output = tmp_path / "out"
     code = main([
+        "analyze",
         str(root),
         "--output-dir",
         str(output),
@@ -113,6 +114,7 @@ def test_cli_extra_exclude_skips_dirs(tmp_path: Path):
     (root / "legacy" / "old.py").write_text("x = 1\n", encoding="utf-8")
     output = tmp_path / "out"
     code = main([
+        "analyze",
         str(root),
         "--output-dir",
         str(output),
@@ -134,7 +136,7 @@ def test_cli_without_extra_exclude_includes_dirs(tmp_path: Path):
     (root / "app.py").write_text("from flask import Flask\napp = Flask(__name__)\n", encoding="utf-8")
     (root / "legacy" / "old.py").write_text("x = 1\n", encoding="utf-8")
     output = tmp_path / "out"
-    code = main([str(root), "--output-dir", str(output)])
+    code = main(["analyze", str(root), "--output-dir", str(output)])
     assert code == 0
     diagnostics = (output / "repo_diagnostic.json").read_text(encoding="utf-8")
     assert "old.py" in diagnostics
@@ -147,7 +149,7 @@ def test_cli_no_llm_summary_flag(tmp_path: Path, capsys):
     root.mkdir()
     (root / "app.py").write_text("x = 1\n", encoding="utf-8")
     output = tmp_path / "out"
-    code = main([str(root), "--output-dir", str(output), "--no-json", "--no-llm-summary"])
+    code = main(["analyze", str(root), "--output-dir", str(output), "--no-json", "--no-llm-summary"])
     assert code == 0
     report = (output / "repo_diagnostic.md").read_text(encoding="utf-8")
     assert "Resumen LLM opcional" not in report

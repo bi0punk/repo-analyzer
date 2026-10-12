@@ -59,9 +59,7 @@ def build_repo_facts(root: Path, extra_excludes: set[str] | None = None, tree_de
     return facts, all_files
 
 
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Repo Agent MVP v3 - diagnóstico heurístico con bundle contextual para LLM")
+def _add_analyze_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("repo_path", help="Ruta del repositorio a analizar")
     parser.add_argument("--output-dir", default="./repo_agent_output", help="Directorio donde dejar los reportes")
     parser.add_argument("--no-json", action="store_true", help="No generar salida JSON")
@@ -74,8 +72,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--extra-exclude", default="", help="Directorios adicionales a excluir, separados por coma (ej: legacy,archivos_viejos)")
     parser.add_argument("--llm-summary", dest="llm_summary", action="store_true", default=None, help="Forzar generación de resumen LLM (requiere REPO_AGENT_LLM_ENDPOINT y REPO_AGENT_LLM_MODEL)")
     parser.add_argument("--no-llm-summary", dest="llm_summary", action="store_false", help="Deshabilitar resumen LLM aunque haya endpoint configurado")
-    args = parser.parse_args(argv)
 
+
+def run_analyze(args: argparse.Namespace) -> int:
     root = Path(args.repo_path).expanduser().resolve()
     if not root.exists() or not root.is_dir():
         print(f"[ERROR] Ruta inválida: {root}", file=sys.stderr)
@@ -168,6 +167,40 @@ def main(argv: list[str] | None = None) -> int:
         print("\n" + state.final_report_markdown)
 
     return 0
+
+
+def _add_scan_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--env-file", default=".env", help="Path al archivo .env")
+    parser.add_argument("--output-dir", default=None, help="Override del directorio de salida (si se omite, se usa OUTPUT_DIR del .env)")
+
+
+def run_scan(args: argparse.Namespace) -> int:
+    from repo_scanner_mvp.cli import run_scan as mvp_run_scan
+    return mvp_run_scan(env_file=args.env_file, output_dir=args.output_dir)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="repo-analyzer",
+        description="repo-analyzer: diagnóstico de repos locales (analyze) y escaneo de repos de GitHub (scan).",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    analyze_parser = subparsers.add_parser("analyze", help="Analizar un repo local (heurísticas + bundle para LLM)")
+    _add_analyze_args(analyze_parser)
+
+    scan_parser = subparsers.add_parser("scan", help="Escaneo de repos de GitHub con reporte de estado/riesgo")
+    _add_scan_args(scan_parser)
+
+    args = parser.parse_args(argv)
+
+    try:
+        if args.command == "analyze":
+            return run_analyze(args)
+        return run_scan(args)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

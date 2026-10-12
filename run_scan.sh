@@ -15,4 +15,4 @@ fi
 source .venv/bin/activate
 pip install -q -e ".[dev]"
 
-repo-scan "$@"
+repo-analyzer scan "$@"

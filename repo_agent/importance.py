@@ -52,7 +52,7 @@ def score_file_importance(path: Path, repo_root: Path) -> float:
         score += 30
     if "@app.route" in lowered or "@bp.route" in lowered:
         score += 55
-    if "if __name__ == \"__main__\"" in lowered or "if __name__ == '__main__'" in lowered:
+    if 'if __name__ == "__main__"' in lowered or "if __name__ == '__main__'" in lowered:
         score += 20
     if "app.run(" in lowered or "uvicorn.run(" in lowered:
         score += 15
@@ -119,14 +119,16 @@ def select_primary_file(repo_root: Path, files: list[Path]) -> dict[str, Any] | 
         if score <= 0:
             continue
         text = read_text_file(path, max_bytes=400_000)
-        candidates.append({
-            "path": path,
-            "relative_path": path.relative_to(repo_root).as_posix(),
-            "score": round(score, 2),
-            "line_count": len(text.splitlines()),
-            "char_count": len(text),
-            "content": text,
-        })
+        candidates.append(
+            {
+                "path": path,
+                "relative_path": path.relative_to(repo_root).as_posix(),
+                "score": round(score, 2),
+                "line_count": len(text.splitlines()),
+                "char_count": len(text),
+                "content": text,
+            }
+        )
     if not candidates:
         return None
     candidates.sort(key=lambda x: (x["score"], x["line_count"]), reverse=True)
@@ -140,7 +142,9 @@ def select_primary_file(repo_root: Path, files: list[Path]) -> dict[str, Any] | 
     }
 
 
-def select_supporting_files(repo_root: Path, files: list[Path], primary_relative_path: str | None, max_files: int = 2) -> list[dict[str, Any]]:
+def select_supporting_files(
+    repo_root: Path, files: list[Path], primary_relative_path: str | None, max_files: int = 2
+) -> list[dict[str, Any]]:
     candidates = []
     for path in files:
         rel = path.relative_to(repo_root).as_posix()
@@ -152,12 +156,14 @@ def select_supporting_files(repo_root: Path, files: list[Path], primary_relative
         if score <= 0:
             continue
         text = read_text_file(path, max_bytes=250_000)
-        candidates.append({
-            "path": rel,
-            "score": round(score, 2),
-            "line_count": len(text.splitlines()),
-            "char_count": len(text),
-            "content": text,
-        })
+        candidates.append(
+            {
+                "path": rel,
+                "score": round(score, 2),
+                "line_count": len(text.splitlines()),
+                "char_count": len(text),
+                "content": text,
+            }
+        )
     candidates.sort(key=lambda x: (x["score"], x["line_count"]), reverse=True)
     return candidates[:max_files]

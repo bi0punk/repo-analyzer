@@ -20,7 +20,9 @@ from .scanner import (
 )
 
 
-def build_repo_facts(root: Path, extra_excludes: set[str] | None = None, tree_depth: int = 3) -> tuple[RepoFacts, list[Path]]:
+def build_repo_facts(
+    root: Path, extra_excludes: set[str] | None = None, tree_depth: int = 3
+) -> tuple[RepoFacts, list[Path]]:
     all_files = list(iter_repo_files(root, extra_excludes))
     ext_counts = extension_counts(all_files)
     stack = detect_stack(root, all_files)
@@ -43,15 +45,21 @@ def build_repo_facts(root: Path, extra_excludes: set[str] | None = None, tree_de
         readme_path=stack["readme_path"],
         has_tests=any(is_test_file(p) for p in all_files),
         has_gitignore=(root / ".gitignore").exists(),
-        has_docker=(root / "Dockerfile").exists() or (root / "docker-compose.yml").exists() or (root / "docker-compose.yaml").exists(),
-        has_env_example=(root / ".env.example").exists() or (root / "env.example").exists() or (root / ".env.sample").exists(),
+        has_docker=(root / "Dockerfile").exists()
+        or (root / "docker-compose.yml").exists()
+        or (root / "docker-compose.yaml").exists(),
+        has_env_example=(root / ".env.example").exists()
+        or (root / "env.example").exists()
+        or (root / ".env.sample").exists(),
         has_templates_dir=bool(stack["has_templates_dir"]),
         has_static_dir=bool(stack["has_static_dir"]),
         route_count=int(stack["route_count"]),
         main_languages=detect_languages_from_extensions(ext_counts),
         file_extension_counts=ext_counts,
         largest_files=largest_files(all_files, root, limit=10),
-        directory_tree_preview=build_tree_preview(root, max_depth=tree_depth, max_entries_per_dir=12, extra_excludes=extra_excludes),
+        directory_tree_preview=build_tree_preview(
+            root, max_depth=tree_depth, max_entries_per_dir=12, extra_excludes=extra_excludes
+        ),
         notable_entrypoints=list(stack["notable_entrypoints"]),
         noise_files_excluded=noise_files_excluded,
         scan_notes=list(stack["scan_notes"]),
@@ -64,14 +72,48 @@ def _add_analyze_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--output-dir", default="./repo_agent_output", help="Directorio donde dejar los reportes")
     parser.add_argument("--no-json", action="store_true", help="No generar salida JSON")
     parser.add_argument("--print-report", action="store_true", help="Imprimir el reporte Markdown en consola")
-    parser.add_argument("--llm-max-input-tokens", type=int, default=24000, help="Presupuesto máximo total estimado para el contexto del LLM")
-    parser.add_argument("--important-file-budget-ratio", type=float, default=0.35, help="Fracción del presupuesto total reservada para el archivo principal")
-    parser.add_argument("--secondary-file-budget-ratio", type=float, default=0.10, help="Fracción del presupuesto total reservada por archivo satélite")
-    parser.add_argument("--max-secondary-files", type=int, default=2, help="Máximo de archivos satélite para el bundle de contexto")
-    parser.add_argument("--tree-depth", type=int, default=3, help="Profundidad máxima del árbol de estructura en el reporte")
-    parser.add_argument("--extra-exclude", default="", help="Directorios adicionales a excluir, separados por coma (ej: legacy,archivos_viejos)")
-    parser.add_argument("--llm-summary", dest="llm_summary", action="store_true", default=None, help="Forzar generación de resumen LLM (requiere REPO_AGENT_LLM_ENDPOINT y REPO_AGENT_LLM_MODEL)")
-    parser.add_argument("--no-llm-summary", dest="llm_summary", action="store_false", help="Deshabilitar resumen LLM aunque haya endpoint configurado")
+    parser.add_argument(
+        "--llm-max-input-tokens",
+        type=int,
+        default=24000,
+        help="Presupuesto máximo total estimado para el contexto del LLM",
+    )
+    parser.add_argument(
+        "--important-file-budget-ratio",
+        type=float,
+        default=0.35,
+        help="Fracción del presupuesto total reservada para el archivo principal",
+    )
+    parser.add_argument(
+        "--secondary-file-budget-ratio",
+        type=float,
+        default=0.10,
+        help="Fracción del presupuesto total reservada por archivo satélite",
+    )
+    parser.add_argument(
+        "--max-secondary-files", type=int, default=2, help="Máximo de archivos satélite para el bundle de contexto"
+    )
+    parser.add_argument(
+        "--tree-depth", type=int, default=3, help="Profundidad máxima del árbol de estructura en el reporte"
+    )
+    parser.add_argument(
+        "--extra-exclude",
+        default="",
+        help="Directorios adicionales a excluir, separados por coma (ej: legacy,archivos_viejos)",
+    )
+    parser.add_argument(
+        "--llm-summary",
+        dest="llm_summary",
+        action="store_true",
+        default=None,
+        help="Forzar generación de resumen LLM (requiere REPO_AGENT_LLM_ENDPOINT y REPO_AGENT_LLM_MODEL)",
+    )
+    parser.add_argument(
+        "--no-llm-summary",
+        dest="llm_summary",
+        action="store_false",
+        help="Deshabilitar resumen LLM aunque haya endpoint configurado",
+    )
 
 
 def run_analyze(args: argparse.Namespace) -> int:
@@ -86,29 +128,33 @@ def run_analyze(args: argparse.Namespace) -> int:
 
     facts, all_files = build_repo_facts(root, extra_excludes=extra_excludes, tree_depth=args.tree_depth)
     state.repo_facts = facts
-    state.tool_results.append(ToolResult(
-        tool_name="fingerprint",
-        success=True,
-        summary="Fingerprint del repositorio generado correctamente.",
-        details={
-            "total_files": facts.total_files,
-            "technologies": facts.technologies,
-            "frameworks": facts.frameworks,
-            "ci_systems": facts.ci_systems,
-            "project_type": facts.project_type,
-            "excluded_noise": facts.noise_files_excluded,
-        },
-    ))
+    state.tool_results.append(
+        ToolResult(
+            tool_name="fingerprint",
+            success=True,
+            summary="Fingerprint del repositorio generado correctamente.",
+            details={
+                "total_files": facts.total_files,
+                "technologies": facts.technologies,
+                "frameworks": facts.frameworks,
+                "ci_systems": facts.ci_systems,
+                "project_type": facts.project_type,
+                "excluded_noise": facts.noise_files_excluded,
+            },
+        )
+    )
 
     analyzer = RepoAnalyzer(root=root, all_files=all_files, facts=facts)
     findings = analyzer.analyze()
     state.findings = findings
-    state.tool_results.append(ToolResult(
-        tool_name="heuristic_diagnosis",
-        success=True,
-        summary=f"Se generaron {len(findings)} hallazgos por heurísticas.",
-        details={"findings_count": len(findings)},
-    ))
+    state.tool_results.append(
+        ToolResult(
+            tool_name="heuristic_diagnosis",
+            success=True,
+            summary=f"Se generaron {len(findings)} hallazgos por heurísticas.",
+            details={"findings_count": len(findings)},
+        )
+    )
 
     state.llm_project_brief = build_llm_project_brief(facts, findings)
     state.llm_context_bundle = build_llm_context_bundle(
@@ -121,21 +167,25 @@ def run_analyze(args: argparse.Namespace) -> int:
         secondary_budget_ratio=args.secondary_file_budget_ratio,
         max_secondary_files=args.max_secondary_files,
     )
-    state.tool_results.append(ToolResult(
-        tool_name="llm_context_bundle",
-        success=True,
-        summary="Bundle contextual para LLM generado correctamente.",
-        details={
-            "max_input_tokens": args.llm_max_input_tokens,
-            "primary_file": (state.llm_context_bundle or {}).get("primary_file", {}).get("path"),
-            "secondary_files": [f.get("path") for f in (state.llm_context_bundle or {}).get("secondary_files", [])],
-        },
-    ))
+    state.tool_results.append(
+        ToolResult(
+            tool_name="llm_context_bundle",
+            success=True,
+            summary="Bundle contextual para LLM generado correctamente.",
+            details={
+                "max_input_tokens": args.llm_max_input_tokens,
+                "primary_file": (state.llm_context_bundle or {}).get("primary_file", {}).get("path"),
+                "secondary_files": [f.get("path") for f in (state.llm_context_bundle or {}).get("secondary_files", [])],
+            },
+        )
+    )
 
     should_summarize = args.llm_summary
     if should_summarize is None:
         should_summarize = bool(os.getenv("REPO_AGENT_LLM_ENDPOINT") and os.getenv("REPO_AGENT_LLM_MODEL"))
-    state.llm_summary = maybe_generate_llm_summary(facts, findings, state.llm_context_bundle) if should_summarize else None
+    state.llm_summary = (
+        maybe_generate_llm_summary(facts, findings, state.llm_context_bundle) if should_summarize else None
+    )
     state.final_report_markdown = build_markdown_report(state)
 
     output_dir = Path(args.output_dir).expanduser().resolve()
@@ -161,7 +211,9 @@ def run_analyze(args: argparse.Namespace) -> int:
     if findings:
         print("[TOP] Hallazgos principales:")
         for finding in findings[:5]:
-            print(f"  - {finding.title} | score={finding.priority_score} | patchable={'sí' if finding.patchable else 'no'}")
+            print(
+                f"  - {finding.title} | score={finding.priority_score} | patchable={'sí' if finding.patchable else 'no'}"
+            )
 
     if args.print_report:
         print("\n" + state.final_report_markdown)
@@ -171,11 +223,14 @@ def run_analyze(args: argparse.Namespace) -> int:
 
 def _add_scan_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--env-file", default=".env", help="Path al archivo .env")
-    parser.add_argument("--output-dir", default=None, help="Override del directorio de salida (si se omite, se usa OUTPUT_DIR del .env)")
+    parser.add_argument(
+        "--output-dir", default=None, help="Override del directorio de salida (si se omite, se usa OUTPUT_DIR del .env)"
+    )
 
 
 def run_scan(args: argparse.Namespace) -> int:
     from repo_scanner_mvp.cli import run_scan as mvp_run_scan
+
     return mvp_run_scan(env_file=args.env_file, output_dir=args.output_dir)
 
 

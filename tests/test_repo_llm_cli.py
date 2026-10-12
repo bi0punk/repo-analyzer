@@ -69,6 +69,7 @@ def test_maybe_generate_llm_summary_on_error_returns_none(monkeypatch, capsys):
 def test_maybe_generate_llm_summary_parses_response(monkeypatch):
     monkeypatch.setenv("REPO_AGENT_LLM_ENDPOINT", "http://127.0.0.1:8080")
     monkeypatch.setenv("REPO_AGENT_LLM_MODEL", "qwen")
+
     class _FakeResponse:
         def __init__(self, payload):
             self._payload = payload
@@ -90,16 +91,20 @@ def test_cli_builds_report(tmp_path: Path, capsys):
 
     root = tmp_path / "proj"
     root.mkdir()
-    (root / "app.py").write_text("from flask import Flask\napp = Flask(__name__)\n@app.route('/')\ndef h(): return 'x'\n", encoding="utf-8")
+    (root / "app.py").write_text(
+        "from flask import Flask\napp = Flask(__name__)\n@app.route('/')\ndef h(): return 'x'\n", encoding="utf-8"
+    )
     (root / "README.md").write_text("# Proyecto\n", encoding="utf-8")
     output = tmp_path / "out"
-    code = main([
-        "analyze",
-        str(root),
-        "--output-dir",
-        str(output),
-        "--no-json",
-    ])
+    code = main(
+        [
+            "analyze",
+            str(root),
+            "--output-dir",
+            str(output),
+            "--no-json",
+        ]
+    )
     assert code == 0
     assert (output / "repo_diagnostic.md").exists()
     captured = capsys.readouterr()
@@ -114,14 +119,16 @@ def test_cli_extra_exclude_skips_dirs(tmp_path: Path):
     (root / "app.py").write_text("from flask import Flask\napp = Flask(__name__)\n", encoding="utf-8")
     (root / "legacy" / "old.py").write_text("x = 1\n", encoding="utf-8")
     output = tmp_path / "out"
-    code = main([
-        "analyze",
-        str(root),
-        "--output-dir",
-        str(output),
-        "--extra-exclude",
-        "legacy",
-    ])
+    code = main(
+        [
+            "analyze",
+            str(root),
+            "--output-dir",
+            str(output),
+            "--extra-exclude",
+            "legacy",
+        ]
+    )
     assert code == 0
     report = (output / "repo_diagnostic.md").read_text(encoding="utf-8")
     diagnostics = (output / "repo_diagnostic.json").read_text(encoding="utf-8")

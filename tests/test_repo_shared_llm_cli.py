@@ -93,7 +93,9 @@ def test_scanner_llm_client_delegates_to_shared_client():
         pushed_at=None,
     )
 
-    with patch("repo_scanner_mvp.llm_client.chat_completion", return_value="SUMMARY: resumido\nCLASSIFICATION: normal") as mocked:
+    with patch(
+        "repo_scanner_mvp.llm_client.chat_completion", return_value="SUMMARY: resumido\nCLASSIFICATION: normal"
+    ) as mocked:
         client = LLMClient(config)
         summary, classification = client.enrich_repo(repo)
     assert summary == "resumido"

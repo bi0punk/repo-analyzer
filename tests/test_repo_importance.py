@@ -12,7 +12,9 @@ def _repo(tmp_path: Path) -> Path:
 def test_score_priority_entrypoint(tmp_path: Path):
     root = _repo(tmp_path)
     app = root / "app.py"
-    app.write_text("from flask import Flask\napp = Flask(__name__)\n@app.route('/')\ndef h(): return 'x'\n", encoding="utf-8")
+    app.write_text(
+        "from flask import Flask\napp = Flask(__name__)\n@app.route('/')\ndef h(): return 'x'\n", encoding="utf-8"
+    )
     score = score_file_importance(app, root)
     assert score > 100
 

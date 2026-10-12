@@ -177,7 +177,9 @@ def chat_completion(
     return data["choices"][0]["message"]["content"].strip()
 
 
-def maybe_generate_llm_summary(repo_facts: RepoFacts, findings: list[Finding], context_bundle: dict[str, Any] | None = None) -> str | None:
+def maybe_generate_llm_summary(
+    repo_facts: RepoFacts, findings: list[Finding], context_bundle: dict[str, Any] | None = None
+) -> str | None:
     endpoint = os.getenv("REPO_AGENT_LLM_ENDPOINT")
     model = os.getenv("REPO_AGENT_LLM_MODEL")
     if not endpoint or not model:

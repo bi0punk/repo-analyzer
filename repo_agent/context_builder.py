@@ -48,11 +48,13 @@ def summarize_python_file(text: str, max_snippets: int = 10) -> dict[str, Any]:
             if key in used_ranges:
                 continue
             used_ranges.add(key)
-            snippets.append({
-                "start_line": start + 1,
-                "end_line": end,
-                "snippet": "\n".join(lines[start:end]),
-            })
+            snippets.append(
+                {
+                    "start_line": start + 1,
+                    "end_line": end,
+                    "snippet": "\n".join(lines[start:end]),
+                }
+            )
             if len(snippets) >= max_snippets:
                 break
 
@@ -90,11 +92,13 @@ def summarize_javascript_file(text: str, max_snippets: int = 10) -> dict[str, An
         if any(re.search(p, line) for p in patterns):
             start = max(0, i - 3)
             end = min(len(lines), i + 6)
-            snippets.append({
-                "start_line": start + 1,
-                "end_line": end,
-                "snippet": "\n".join(lines[start:end]),
-            })
+            snippets.append(
+                {
+                    "start_line": start + 1,
+                    "end_line": end,
+                    "snippet": "\n".join(lines[start:end]),
+                }
+            )
             if len(snippets) >= max_snippets:
                 break
 
@@ -169,17 +173,21 @@ def build_selected_files_markdown(context_bundle: dict[str, Any]) -> str:
     if secondary_files:
         lines.append("## Archivos satélite")
         for item in secondary_files:
-            lines.append(f"- `{item.get('path')}` | modo={item.get('included_mode')} | tokens={item.get('estimated_tokens')}")
+            lines.append(
+                f"- `{item.get('path')}` | modo={item.get('included_mode')} | tokens={item.get('estimated_tokens')}"
+            )
         lines.append("")
 
     prompt = context_bundle.get("llm_context_prompt")
     if prompt:
-        lines.extend([
-            "## Prompt sugerido",
-            "```text",
-            str(prompt).strip(),
-            "```",
-        ])
+        lines.extend(
+            [
+                "## Prompt sugerido",
+                "```text",
+                str(prompt).strip(),
+                "```",
+            ]
+        )
     return "\n".join(lines).strip() + "\n"
 
 

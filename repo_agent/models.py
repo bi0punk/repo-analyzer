@@ -63,13 +63,7 @@ class Finding:
     priority_score: float = 0.0
 
     def compute_score(self) -> float:
-        score = (
-            0.30 * self.urgency +
-            0.25 * self.impact +
-            0.20 * self.ease +
-            0.15 * self.confidence -
-            0.10 * self.risk
-        )
+        score = 0.30 * self.urgency + 0.25 * self.impact + 0.20 * self.ease + 0.15 * self.confidence - 0.10 * self.risk
         self.priority_score = round(score, 3)
         return self.priority_score
 

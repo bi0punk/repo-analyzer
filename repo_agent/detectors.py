@@ -67,7 +67,9 @@ def detect_stack(root: Path, files: Iterable[Path]) -> StackInfo:
         technologies.add("PHP")
     if has("Gemfile"):
         technologies.add("Ruby")
-    if has("Dockerfile") or any(f.endswith("docker-compose.yml") or f.endswith("docker-compose.yaml") for f in file_set):
+    if has("Dockerfile") or any(
+        f.endswith("docker-compose.yml") or f.endswith("docker-compose.yaml") for f in file_set
+    ):
         technologies.add("Docker")
 
     has_templates = (root / "templates").is_dir()
@@ -109,7 +111,9 @@ def detect_stack(root: Path, files: Iterable[Path]) -> StackInfo:
         frameworks.add("Flask-like")
         if project_type == "unknown":
             project_type = "server_rendered_web_app"
-        scan_notes.append("Se detectó estructura app.py + templates, compatible con Flask/Jinja o app similar renderizada en servidor.")
+        scan_notes.append(
+            "Se detectó estructura app.py + templates, compatible con Flask/Jinja o app similar renderizada en servidor."
+        )
 
     if _contains_any(entry_text, ["fastapi", "uvicorn", "from fastapi import"]):
         frameworks.add("FastAPI")
@@ -181,7 +185,11 @@ def detect_stack(root: Path, files: Iterable[Path]) -> StackInfo:
     if route_count:
         scan_notes.append(f"Se detectaron aproximadamente {route_count} rutas decoradas en entrypoints Python.")
 
-    if any(_contains_any(read_text_file(p), ["bootstrap", "btn-", "container-fluid", "navbar"]) for p in file_list if p.suffix.lower() in {".html", ".css", ".js"}):
+    if any(
+        _contains_any(read_text_file(p), ["bootstrap", "btn-", "container-fluid", "navbar"])
+        for p in file_list
+        if p.suffix.lower() in {".html", ".css", ".js"}
+    ):
         technologies.add("Bootstrap")
 
     summary_parts = []
@@ -190,7 +198,9 @@ def detect_stack(root: Path, files: Iterable[Path]) -> StackInfo:
     if project_type != "unknown":
         summary_parts.append(f"Tipo de proyecto: {project_type}")
     if has_templates or has_static:
-        summary_parts.append(f"Estructura web detectada: templates={'sí' if has_templates else 'no'}, static={'sí' if has_static else 'no'}")
+        summary_parts.append(
+            f"Estructura web detectada: templates={'sí' if has_templates else 'no'}, static={'sí' if has_static else 'no'}"
+        )
 
     return {
         "technologies": sorted(technologies),
@@ -207,7 +217,6 @@ def detect_stack(root: Path, files: Iterable[Path]) -> StackInfo:
         "notable_entrypoints": notable_entrypoints,
         "scan_notes": scan_notes,
     }
-
 
 
 def detect_languages_from_extensions(extension_count_map: dict[str, int]) -> list[str]:

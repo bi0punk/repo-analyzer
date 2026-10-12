@@ -29,7 +29,6 @@ def findings_to_markdown(findings: list[Finding]) -> str:
     return "\n".join(lines).strip()
 
 
-
 def brief_to_markdown(brief: dict[str, Any] | None) -> str:
     if not brief:
         return "No se generó contexto preliminar para LLM."
@@ -38,15 +37,16 @@ def brief_to_markdown(brief: dict[str, Any] | None) -> str:
     for item in brief.get("preliminary_antecedents", []):
         lines.append(f"- {item}")
 
-    lines.extend([
-        "",
-        "## Prompt sugerido para LLM",
-        "```text",
-        str(brief.get("llm_prompt", "")).strip(),
-        "```",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Prompt sugerido para LLM",
+            "```text",
+            str(brief.get("llm_prompt", "")).strip(),
+            "```",
+        ]
+    )
     return "\n".join(lines)
-
 
 
 def important_context_to_markdown(context_bundle: dict[str, Any] | None) -> str:
@@ -81,14 +81,15 @@ def important_context_to_markdown(context_bundle: dict[str, Any] | None) -> str:
             )
         lines.append("")
 
-    lines.extend([
-        "### Prompt ampliado para LLM",
-        "```text",
-        str(context_bundle.get("llm_context_prompt", "")).strip(),
-        "```",
-    ])
+    lines.extend(
+        [
+            "### Prompt ampliado para LLM",
+            "```text",
+            str(context_bundle.get("llm_context_prompt", "")).strip(),
+            "```",
+        ]
+    )
     return "\n".join(lines)
-
 
 
 def build_markdown_report(state: AgentState) -> str:
@@ -132,44 +133,51 @@ def build_markdown_report(state: AgentState) -> str:
     for ext, count in list(facts.file_extension_counts.items())[:12]:
         lines.append(f"- `{ext}`: {count}")
 
-    lines.extend([
-        "",
-        "## Archivos más grandes considerados",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Archivos más grandes considerados",
+        ]
+    )
     for item in facts.largest_files[:8]:
         lines.append(f"- `{item['path']}` — {item['size_kb']} KB")
 
     if facts.scan_notes:
-        lines.extend([
-            "",
-            "## Notas de detección",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Notas de detección",
+            ]
+        )
         for note in facts.scan_notes:
             lines.append(f"- {note}")
 
     if state.llm_summary:
-        lines.extend([
+        lines.extend(
+            [
+                "",
+                "## Resumen LLM opcional",
+                state.llm_summary,
+            ]
+        )
+
+    lines.extend(
+        [
             "",
-            "## Resumen LLM opcional",
-            state.llm_summary,
-        ])
-
-    lines.extend([
-        "",
-        "## Hallazgos priorizados",
-        findings_to_markdown(state.findings),
-        "",
-        brief_to_markdown(state.llm_project_brief),
-        "",
-        important_context_to_markdown(state.llm_context_bundle),
-        "",
-        "## Siguientes pasos recomendados",
-        "1. Atacar primero los hallazgos patchable de tipo P0/P1.",
-        "2. Luego asegurar tests y CI antes de refactors grandes.",
-        "3. Usar `llm_context_bundle.json` o `llm_context_prompt.txt` para pedir al LLM README, overview técnico, quick wins o plan de refactor.",
-    ])
+            "## Hallazgos priorizados",
+            findings_to_markdown(state.findings),
+            "",
+            brief_to_markdown(state.llm_project_brief),
+            "",
+            important_context_to_markdown(state.llm_context_bundle),
+            "",
+            "## Siguientes pasos recomendados",
+            "1. Atacar primero los hallazgos patchable de tipo P0/P1.",
+            "2. Luego asegurar tests y CI antes de refactors grandes.",
+            "3. Usar `llm_context_bundle.json` o `llm_context_prompt.txt` para pedir al LLM README, overview técnico, quick wins o plan de refactor.",
+        ]
+    )
     return "\n".join(lines)
-
 
 
 def write_outputs(state: AgentState, output_dir: Path, write_json: bool = True) -> None:

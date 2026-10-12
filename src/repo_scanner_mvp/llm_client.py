@@ -21,10 +21,10 @@ class LLMClient:
             Resume este repositorio y clasifícalo brevemente para una futura normalización de ramas.
 
             Repo: {repo.full_name}
-            Descripción: {repo.description or 'sin descripción'}
-            Lenguaje principal: {repo.language or 'desconocido'}
-            Rama por defecto: {repo.default_branch or 'desconocida'}
-            Ramas: {', '.join(branch.name for branch in repo.branches) or 'sin ramas'}
+            Descripción: {repo.description or "sin descripción"}
+            Lenguaje principal: {repo.language or "desconocido"}
+            Rama por defecto: {repo.default_branch or "desconocida"}
+            Ramas: {", ".join(branch.name for branch in repo.branches) or "sin ramas"}
             Tiene main: {repo.has_main}
             Tiene master: {repo.has_master}
             Tiene dev: {repo.has_dev}
@@ -32,7 +32,7 @@ class LLMClient:
             main protegida: {repo.protected_main}
             Estado determinístico actual: {repo.repo_status}
             Riesgo: {repo.risk_level}
-            Acciones sugeridas: {', '.join(repo.recommended_actions) or 'ninguna'}
+            Acciones sugeridas: {", ".join(repo.recommended_actions) or "ninguna"}
 
             Devuelve exactamente este formato:
             CLASSIFICATION: <una etiqueta corta>

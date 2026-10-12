@@ -28,9 +28,7 @@ class GitHubClient:
         url = f"{self.config.api_base_url}{path}"
         response = self.session.request(method=method, url=url, params=params, timeout=60)
         if response.status_code >= 400:
-            raise GitHubApiError(
-                f"GitHub API error {response.status_code} for {path}: {response.text[:400]}"
-            )
+            raise GitHubApiError(f"GitHub API error {response.status_code} for {path}: {response.text[:400]}")
         return response
 
     def _paginate(self, path: str, params: dict[str, Any] | None = None, max_pages: int = 100) -> list[dict[str, Any]]:
@@ -58,7 +56,9 @@ class GitHubClient:
 
     def list_repositories(self) -> list[dict[str, Any]]:
         if self.config.scan_mode == "authenticated":
-            return self._paginate("/user/repos", params={"sort": "updated", "affiliation": "owner,collaborator,organization_member"})
+            return self._paginate(
+                "/user/repos", params={"sort": "updated", "affiliation": "owner,collaborator,organization_member"}
+            )
         if self.config.scan_mode == "org":
             return self._paginate(f"/orgs/{self.config.owner}/repos", params={"type": "all", "sort": "updated"})
         return self._paginate(f"/users/{self.config.owner}/repos", params={"sort": "updated"})

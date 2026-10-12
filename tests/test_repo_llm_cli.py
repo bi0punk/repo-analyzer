@@ -59,7 +59,7 @@ def test_maybe_generate_llm_summary_requires_env(monkeypatch):
 def test_maybe_generate_llm_summary_on_error_returns_none(monkeypatch, capsys):
     monkeypatch.setenv("REPO_AGENT_LLM_ENDPOINT", "http://127.0.0.1:8080")
     monkeypatch.setenv("REPO_AGENT_LLM_MODEL", "qwen")
-    with patch("repo_agent.llm.urllib.request.urlopen", side_effect=OSError("boom")):
+    with patch("repo_agent.llm.requests.post", side_effect=OSError("boom")):
         result = maybe_generate_llm_summary(_facts(), _findings())
     assert result is None
     captured = capsys.readouterr()
@@ -70,16 +70,17 @@ def test_maybe_generate_llm_summary_parses_response(monkeypatch):
     monkeypatch.setenv("REPO_AGENT_LLM_ENDPOINT", "http://127.0.0.1:8080")
     monkeypatch.setenv("REPO_AGENT_LLM_MODEL", "qwen")
     class _FakeResponse:
-        def __enter__(self):
-            return self
+        def __init__(self, payload):
+            self._payload = payload
 
-        def __exit__(self, *args):
-            return False
+        def raise_for_status(self):
+            return None
 
-        def read(self):
-            return b'{"choices": [{"message": {"content": "resumen"}}]}'
+        def json(self):
+            return self._payload
 
-    with patch("repo_agent.llm.urllib.request.urlopen", return_value=_FakeResponse()):
+    payload = {"choices": [{"message": {"content": "resumen"}}]}
+    with patch("repo_agent.llm.requests.post", return_value=_FakeResponse(payload)):
         result = maybe_generate_llm_summary(_facts(), _findings())
     assert result == "resumen"
 

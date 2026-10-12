@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import os
 import sys
-import urllib.request
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
+
+import requests
 
 from .budgeting import compute_budget
 from .context_builder import build_file_payload, build_prompt_from_bundle
@@ -126,6 +128,53 @@ def build_llm_context_bundle(
     return bundle
 
 
+ALLOWED_LLM_SCHEMES = {"http", "https"}
+
+
+class LLMError(RuntimeError):
+    """Error de configuración o comunicación con el endpoint LLM."""
+
+
+def build_llm_endpoint_url(endpoint: str) -> str:
+    parsed = urlparse(endpoint)
+    if parsed.scheme not in ALLOWED_LLM_SCHEMES or not parsed.hostname:
+        raise LLMError(f"Endpoint LLM no permitido: {endpoint!r} (solo http/https)")
+    return endpoint.rstrip("/") + "/v1/chat/completions"
+
+
+def chat_completion(
+    endpoint: str,
+    model: str,
+    messages: list[dict[str, Any]],
+    api_key: str = "",
+    temperature: float = 0.2,
+    max_tokens: int | None = None,
+    timeout: float = 60.0,
+) -> str:
+    """Llama a un endpoint OpenAI-compatible (chat/completions) y devuelve el contenido."""
+    payload: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+    }
+    if max_tokens is not None:
+        payload["max_tokens"] = max_tokens
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    response = requests.post(
+        build_llm_endpoint_url(endpoint),
+        json=payload,
+        headers=headers,
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    data = response.json()
+    return data["choices"][0]["message"]["content"].strip()
+
+
 def maybe_generate_llm_summary(repo_facts: RepoFacts, findings: list[Finding], context_bundle: dict[str, Any] | None = None) -> str | None:
     endpoint = os.getenv("REPO_AGENT_LLM_ENDPOINT")
     model = os.getenv("REPO_AGENT_LLM_MODEL")
@@ -133,40 +182,29 @@ def maybe_generate_llm_summary(repo_facts: RepoFacts, findings: list[Finding], c
         return None
 
     brief = context_bundle or build_llm_project_brief(repo_facts, findings)
-    payload = {
-        "model": model,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "Eres un arquitecto de software. Resume el diagnóstico del repo en español técnico, "
-                    "priorizando quick wins y luego mejoras estructurales. Sé concreto y no inventes hechos."
-                ),
-            },
-            {
-                "role": "user",
-                "content": json.dumps(brief, ensure_ascii=False),
-            },
-        ],
-        "temperature": 0.2,
-    }
-
-    api_key = os.getenv("REPO_AGENT_LLM_API_KEY", "")
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    req = urllib.request.Request(
-        endpoint.rstrip("/") + "/v1/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        headers=headers,
-        method="POST",
-    )
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "Eres un arquitecto de software. Resume el diagnóstico del repo en español técnico, "
+                "priorizando quick wins y luego mejoras estructurales. Sé concreto y no inventes hechos."
+            ),
+        },
+        {
+            "role": "user",
+            "content": json.dumps(brief, ensure_ascii=False),
+        },
+    ]
 
     try:
-        with urllib.request.urlopen(req, timeout=60) as response:
-            data = json.loads(response.read().decode("utf-8"))
-        return data["choices"][0]["message"]["content"].strip()
+        return chat_completion(
+            endpoint=endpoint,
+            model=model,
+            messages=messages,
+            api_key=os.getenv("REPO_AGENT_LLM_API_KEY", ""),
+            temperature=0.2,
+            timeout=60.0,
+        )
     except Exception as exc:  # pragma: no cover
         print(f"[WARN] No se pudo generar resumen LLM: {exc}", file=sys.stderr)
         return None

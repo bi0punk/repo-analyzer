@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, dev]
   pull_request:
-    branches: [main, master]
+    branches: [main, dev]
 
 jobs:
   lint:
@@ -26,6 +26,17 @@ jobs:
           python-version: "3.12"
       - run: uv pip install mypy
       - run: mypy repo_agent src
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.12"
+      - run: uv pip install bandit vulture
+      - run: bandit -q -r repo_agent src/repo_scanner_mvp
+      - run: vulture repo_agent src/repo_scanner_mvp --min-confidence 70 --exclude "*.pyc"
 
   test:
     runs-on: ubuntu-latest

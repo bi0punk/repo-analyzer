@@ -7,6 +7,49 @@ from .models import Finding, RepoFacts
 from .scanner import is_test_file, read_text_file
 
 README_NAMES = {"readme.md", "readme.txt", "readme", "readme.generated.md"}
+SECRETS_PATTERNS = [
+    re.compile(r"(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][^'\"]{8,}['\"]"),
+    re.compile(r"AKIA[0-9A-Z]{16}"),
+]
+SOURCE_SUFFIXES = {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".java", ".html"}
+SCANABLE_SUFFIXES = {".py", ".js", ".ts", ".env", ".json", ".yaml", ".yml", ".ini", ".cfg"}
+
+
+def _finding(
+    *,
+    id: str,
+    title: str,
+    category: str,
+    description: str,
+    urgency: int,
+    impact: int,
+    ease: int,
+    risk: int,
+    confidence: int,
+    estimated_hours: float,
+    patchable: bool,
+    suggested_action: str,
+    validation_steps: list[str],
+    evidence: list[str] | None = None,
+    affected_files: list[str] | None = None,
+) -> Finding:
+    return Finding(
+        id=id,
+        title=title,
+        category=category,
+        description=description,
+        evidence=evidence or [],
+        affected_files=affected_files or [],
+        urgency=urgency,
+        impact=impact,
+        ease=ease,
+        risk=risk,
+        confidence=confidence,
+        estimated_hours=estimated_hours,
+        patchable=patchable,
+        suggested_action=suggested_action,
+        validation_steps=validation_steps,
+    )
 
 
 class RepoAnalyzer:
@@ -51,7 +94,7 @@ class RepoAnalyzer:
         results: list[Finding] = []
         readme_path = self._readme_path()
         if self.facts.readme_status == "missing":
-            results.append(Finding(
+            return [_finding(
                 id="docs-missing-readme",
                 title="Falta README principal",
                 category="documentation",
@@ -65,11 +108,10 @@ class RepoAnalyzer:
                 patchable=True,
                 suggested_action="Crear un README con instalación, ejecución, variables de entorno, estructura y comandos frecuentes.",
                 validation_steps=["Verificar que los comandos del README funcionen en un entorno limpio."],
-            ))
-            return results
+            )]
 
         if self.facts.readme_status == "generated_only":
-            results.append(Finding(
+            results.append(_finding(
                 id="docs-generated-readme-only",
                 title="Sólo existe README generado, no README principal estándar",
                 category="documentation",
@@ -91,13 +133,10 @@ class RepoAnalyzer:
 
         content = read_text_file(readme_path)
         lowered = content.lower()
-        missing_sections = []
-        for section in ["instal", "uso", "config", "test", "docker", "arquitect", "estructura"]:
-            if section not in lowered:
-                missing_sections.append(section)
+        missing_sections = [s for s in ["instal", "uso", "config", "test", "docker", "arquitect", "estructura"] if s not in lowered]
 
         if len(content.strip()) < 500:
-            results.append(Finding(
+            results.append(_finding(
                 id="docs-thin-readme",
                 title="README muy básico",
                 category="documentation",
@@ -116,7 +155,7 @@ class RepoAnalyzer:
             ))
 
         if missing_sections:
-            results.append(Finding(
+            results.append(_finding(
                 id="docs-readme-missing-sections",
                 title="README incompleto",
                 category="documentation",
@@ -138,7 +177,7 @@ class RepoAnalyzer:
     def _project_shape_findings(self) -> list[Finding]:
         findings: list[Finding] = []
         if self.facts.project_type == "server_rendered_web_app" and not self.facts.frameworks:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="shape-server-rendered-without-framework-clear",
                 title="Proyecto web renderizado detectado, framework no confirmado",
                 category="architecture",
@@ -156,7 +195,7 @@ class RepoAnalyzer:
             ))
 
         if self.facts.has_templates_dir and self.facts.has_static_dir and self.facts.route_count == 0:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="shape-web-ui-no-routes-detected",
                 title="Estructura web presente, pero sin rutas detectadas en entrypoint principal",
                 category="architecture",
@@ -178,7 +217,7 @@ class RepoAnalyzer:
         results: list[Finding] = []
         test_files = [p for p in self.all_files if is_test_file(p)]
         if not test_files:
-            results.append(Finding(
+            results.append(_finding(
                 id="quality-no-tests",
                 title="No se detectaron tests",
                 category="testing",
@@ -194,7 +233,7 @@ class RepoAnalyzer:
                 validation_steps=["Definir un comando estable de tests en CI."],
             ))
         elif len(test_files) < max(2, int(self.facts.total_files * 0.05)):
-            results.append(Finding(
+            results.append(_finding(
                 id="quality-low-test-footprint",
                 title="Cobertura de tests probablemente baja",
                 category="testing",
@@ -216,7 +255,7 @@ class RepoAnalyzer:
     def _ci_findings(self) -> list[Finding]:
         if self.facts.ci_systems:
             return []
-        return [Finding(
+        return [_finding(
             id="ops-no-ci",
             title="No se detectó CI",
             category="quality",
@@ -236,7 +275,7 @@ class RepoAnalyzer:
         findings: list[Finding] = []
         root_files = [p for p in self.all_files if p.parent == self.root]
         if len(root_files) > 18:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="structure-crowded-root",
                 title="Raíz del repositorio muy cargada",
                 category="architecture",
@@ -258,7 +297,7 @@ class RepoAnalyzer:
     def _config_findings(self) -> list[Finding]:
         findings: list[Finding] = []
         if not self.facts.has_gitignore:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="repo-no-gitignore",
                 title="Falta .gitignore",
                 category="quality",
@@ -275,7 +314,7 @@ class RepoAnalyzer:
             ))
 
         if not self.facts.has_env_example:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="config-no-env-example",
                 title="No hay plantilla de variables de entorno",
                 category="documentation",
@@ -293,7 +332,7 @@ class RepoAnalyzer:
 
         suspicious_hits = self._scan_for_secrets_like_patterns(limit=6)
         if suspicious_hits:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="security-hardcoded-secrets-suspected",
                 title="Posibles secretos o credenciales hardcodeadas",
                 category="security",
@@ -313,7 +352,7 @@ class RepoAnalyzer:
 
     def _large_files_findings(self) -> list[Finding]:
         findings: list[Finding] = []
-        likely_source_files = [p for p in self.all_files if p.suffix.lower() in {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".java", ".html"}]
+        likely_source_files = [p for p in self.all_files if p.suffix.lower() in SOURCE_SUFFIXES]
         giant_files = []
         for path in likely_source_files:
             text = read_text_file(path, max_bytes=500_000)
@@ -322,7 +361,7 @@ class RepoAnalyzer:
 
         if giant_files:
             path, lines = sorted(giant_files, key=lambda x: x[1], reverse=True)[0]
-            findings.append(Finding(
+            findings.append(_finding(
                 id="structure-large-module",
                 title="Archivo grande candidato a división",
                 category="architecture",
@@ -359,7 +398,7 @@ class RepoAnalyzer:
         render_calls = sum(text.count("render_template(") for text in texts.values())
 
         if line_count > 400:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="entrypoint-app-py-large",
                 title=f"{largest_rel} concentra mucha lógica",
                 category="architecture",
@@ -378,7 +417,7 @@ class RepoAnalyzer:
             ))
 
         if route_count >= 8:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="entrypoint-many-routes-one-file",
                 title="Múltiples rutas centralizadas en pocos archivos",
                 category="architecture",
@@ -397,7 +436,7 @@ class RepoAnalyzer:
             ))
 
         if any("debug=True" in text.replace(" ", "") for text in texts.values()):
-            findings.append(Finding(
+            findings.append(_finding(
                 id="entrypoint-debug-true",
                 title="Modo debug explícito en código",
                 category="security",
@@ -420,7 +459,7 @@ class RepoAnalyzer:
         findings: list[Finding] = []
         zip_files = [p for p in self.root.iterdir() if p.is_file() and p.suffix.lower() == ".zip"] if self.root.exists() else []
         if zip_files:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="repo-zip-artifacts-in-root",
                 title="Hay artefactos comprimidos dentro del repositorio",
                 category="quality",
@@ -443,7 +482,7 @@ class RepoAnalyzer:
         findings: list[Finding] = []
         md_files = [p for p in self.all_files if p.suffix.lower() == ".md"]
         if not md_files:
-            findings.append(Finding(
+            findings.append(_finding(
                 id="docs-no-markdown-docs",
                 title="Documentación complementaria ausente",
                 category="documentation",
@@ -461,20 +500,15 @@ class RepoAnalyzer:
         return findings
 
     def _scan_for_secrets_like_patterns(self, limit: int = 6) -> list[str]:
-        patterns = [
-            re.compile(r"(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][^'\"]{8,}['\"]"),
-            re.compile(r"AKIA[0-9A-Z]{16}"),
-        ]
         matches: list[str] = []
-        candidate_files = [p for p in self.all_files if p.suffix.lower() in {".py", ".js", ".ts", ".env", ".json", ".yaml", ".yml", ".ini", ".cfg"}]
+        candidate_files = [p for p in self.all_files if p.suffix.lower() in SCANABLE_SUFFIXES]
         for path in candidate_files:
             text = read_text_file(path, max_bytes=80_000)
             if not text:
                 continue
-            for pattern in patterns:
+            for pattern in SECRETS_PATTERNS:
                 for hit in pattern.finditer(text):
-                    snippet = hit.group(0)
-                    matches.append(f"{path.relative_to(self.root)} → {snippet[:120]}")
+                    matches.append(f"{path.relative_to(self.root)} -> {hit.group(0)[:120]}")
                     if len(matches) >= limit:
                         return matches
         return matches

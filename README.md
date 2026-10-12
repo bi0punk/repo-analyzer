@@ -1,24 +1,72 @@
-# Repo Agent MVP v3
+# repo-analyzer — Repo Agent MVP
+
+MVP funcional para diagnosticar repositorios locales y preparar un paquete de contexto útil para un LLM. Incluye además un escáner de repos de GitHub con reporte de estado/riesgo por repo.
 
 [![CI](https://github.com/bi0punk/repo-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/bi0punk/repo-analyzer/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-MVP funcional para diagnosticar repositorios locales y preparar un paquete de contexto útil para un LLM.
+## Contenido
 
-## Tabla de contenidos
-
-- [Qué detecta](#qué-detecta-esta-versión)
-- [Stack](#stack)
+- [Características](#características)
 - [Arquitectura](#arquitectura)
+- [Stack](#stack)
+- [Estructura del repositorio](#estructura-del-repositorio)
 - [Instalación](#instalación)
 - [Uso](#uso)
-- [Tests](#tests)
-- [CI](#ci)
-- [LLM opcional](#llm-opcional-por-endpoint-compatible-openai)
-- [Limitaciones](#limitaciones-actuales)
-- [Escáner de GitHub](#escáner-de-repos-de-github-segunda-herramienta)
+- [Configuración](#configuración)
+- [Tests / CI](#tests--ci)
+- [Roadmap](#roadmap)
 - [Licencia](#licencia)
+
+## Características
+
+### Analizador de repos locales
+
+- Estructura general del repo y vista previa del árbol de directorios.
+- Tecnologías, frameworks y lenguajes principales por extensiones.
+- Tipo de proyecto sugerido.
+- CI detectado o ausente; README real vs. README generado.
+- Presencia de tests, `.gitignore` y `.env.example`.
+- Archivos más grandes considerados; detección de `app.py` sobredimensionado.
+- Sospecha simple de secretos hardcodeados y artefactos comprimidos dentro del repo.
+- Selección del archivo principal para contexto LLM bajo presupuesto de tokens.
+- Hasta 2 archivos satélite opcionales dentro del presupuesto.
+- Resumen LLM opcional vía endpoint OpenAI-compatible (llama.cpp).
+
+### Escáner de repos de GitHub
+
+- Recorre los repos de un owner en GitHub y genera reporte de estado/riesgo por repo.
+- Configurable por token, owner, modo de escaneo, allowlist y límites de paginación.
+
+## Arquitectura
+
+```mermaid
+flowchart TD
+  REPO[Repo local] --> SCAN[repo_agent.scanner<br/>files + estructura]
+  SCAN --> DET[detectors<br/>stack/lenguajes/frameworks]
+  SCAN --> ANA[analyzers<br/>findings: README, tests, CI, secretos]
+  SCAN --> IMP[importance<br/>archivo principal + satélites]
+  IMP --> BUD[budgeting<br/>presupuesto de tokens]
+  DET --> CB[context_builder<br/>bundle para LLM]
+  ANA --> CB
+  BUD --> CB
+  CB --> REP[reporter → markdown/JSON]
+  REP -->|opcional| LLM[LLM llama.cpp<br/>REPO_AGENT_LLM_ENDPOINT]
+  LLM --> SUM[resumen LLM]
+
+  GH[GitHub API] --> GPS[src/repo_scanner_mvp<br/>escáner GitHub]
+  GPS --> GCC[repo_scanner_mvp.github_client]
+  GPS --> RUL[repo_scanner_mvp.rules]
+  GPS --> RPT[repo_scanner_mvp.report_writer]
+```
+
+Salidas generadas por el analizador:
+
+- `repo_diagnostic.md` y `repo_diagnostic.json`
+- `llm_project_brief.json`, `llm_prompt.txt`, `llm_antecedents.md`
+- `llm_context_bundle.json`, `llm_context_prompt.txt`
+- `important_file_summary.md`
 
 ## Stack
 
@@ -26,67 +74,59 @@ MVP funcional para diagnosticar repositorios locales y preparar un paquete de co
 - Biblioteca estándar (análisis local sin deps pesadas)
 - `requests` + `python-dotenv` (escáner GitHub)
 - LLM opcional vía endpoint OpenAI-compatible (llama.cpp)
-- Calidad: ruff (lint), pytest
+- Calidad: ruff (lint), mypy (typecheck), pytest
 
-## Arquitectura
+## Estructura del repositorio
 
 ```
-repo local ──► repo_agent.scanner (files/structure)
-                 │
-                 ├─► detectors (stack/languages/frameworks)
-                 ├─► analyzers (findings: README, tests, CI, secrets, …)
-                 ├─► importance (primary + supporting files)
-                 ├─► budgeting (token budget)
-                 └─► context_builder (bundle para LLM)
-                         │
-                         ▼
-                  reporter (markdown report) ──► optional LLM summary
+repo-analyzer/
+├── analyze_repo.py             # Entry point del analizador local
+├── main.py
+├── repo_agent/
+│   ├── analyzers.py            # Findings (README, tests, CI, secretos, …)
+│   ├── budgeting.py            # Presupuesto de tokens
+│   ├── cli.py                  # CLI (repo-analyze)
+│   ├── context_builder.py      # Bundle para LLM
+│   ├── detectors.py            # Stack/lenguajes/frameworks
+│   ├── importance.py           # Archivo principal + satélites
+│   ├── llm.py                  # Resumen LLM opcional
+│   ├── models.py
+│   ├── prioritizer.py
+│   ├── reporter.py             # Reportes markdown/JSON
+│   └── scanner.py              # Escaneo de estructura
+├── src/repo_scanner_mvp/       # Escáner de repos de GitHub
+│   ├── cli.py                  # CLI (repo-scan)
+│   ├── config.py
+│   ├── github_client.py
+│   ├── llm_client.py
+│   ├── models.py
+│   ├── report_writer.py
+│   ├── rules.py
+│   ├── scanner.py
+│   └── utils.py
+├── run_demo.sh                 # Ejecuta análisis de demo
+├── run_scan.sh                 # Ejecuta escáner GitHub
+├── tests/                      # 39 tests
+├── .github/workflows/ci.yml
+├── .env.example
+├── pyproject.toml
+├── LICENSE
+└── README.md
 ```
 
-Esta versión añade una mejora clave sobre la v2:
-
-1. selecciona el archivo más importante del proyecto,
-2. estima si cabe dentro del presupuesto del modelo,
-3. lo incluye completo o lo resume si excede el presupuesto,
-4. agrega hasta 2 archivos satélite opcionales,
-5. exporta un bundle listo para pegar o enviar a un LLM.
-
-## Qué detecta esta versión
-
-- estructura general del repo
-- vista previa del árbol de directorios
-- tecnologías y frameworks detectados
-- lenguajes principales por extensiones
-- tipo de proyecto sugerido
-- CI detectado o ausente
-- README real vs README generado
-- presencia de tests
-- presencia de `.gitignore`
-- presencia de `.env.example`
-- archivos más grandes considerados
-- `app.py` sobredimensionado
-- rutas centralizadas en un solo archivo
-- sospecha simple de secretos hardcodeados
-- artefactos comprimidos dentro del repo
-- contexto preliminar para LLM
-- selección del archivo principal para contexto LLM
-- archivos satélite opcionales dentro de presupuesto
-
-## Salidas generadas
-
-- `repo_diagnostic.md`
-- `repo_diagnostic.json`
-- `llm_project_brief.json`
-- `llm_prompt.txt`
-- `llm_antecedents.md`
-- `llm_context_bundle.json`
-- `llm_context_prompt.txt`
-- `important_file_summary.md`
-
-## Ejecución
+## Instalación
 
 ```bash
-cd repo-analyzer
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+## Uso
+
+### Analizar un repo local
+
+```bash
 python3 analyze_repo.py /ruta/a/tu/repositorio --output-dir ./output --print-report
 ```
 
@@ -96,7 +136,7 @@ O bien:
 ./run_demo.sh /ruta/a/tu/repositorio
 ```
 
-## Ejemplo con control del presupuesto LLM
+### Ejemplo con control del presupuesto LLM
 
 ```bash
 python3 analyze_repo.py ~/Documentos/atacamahub_web \
@@ -118,54 +158,77 @@ repo-analyze /ruta/al/repo --no-llm-summary     # desactiva resumen LLM
 
 - `--tree-depth N` — profundidad máxima del árbol de estructura en el reporte.
 - `--extra-exclude a,b` — directorios adicionales a excluir del escaneo (además de los defaults).
-- `--llm-summary` / `--no-llm-summary` — forzar o desactivar el resumen LLM (por defecto se genera solo si `REPO_AGENT_LLM_ENDPOINT` y `REPO_AGENT_LLM_MODEL` están definidos).
+- `--llm-summary` / `--no-llm-summary` — forzar o desactivar el resumen LLM (por defecto solo se genera si `REPO_AGENT_LLM_ENDPOINT` y `REPO_AGENT_LLM_MODEL` están definidos).
 
-## Qué hace con el archivo principal
+### Qué hace con el archivo principal
 
-- detecta candidatos como `app.py`, `main.py`, `server.py`, etc.
-- prioriza señales de entrypoint, rutas, render de templates o arranque del servidor
-- si el archivo cabe, lo mete completo en `llm_context_bundle.json`
-- si no cabe, lo resume en forma estructurada
+- Detecta candidatos como `app.py`, `main.py`, `server.py`, etc.
+- Prioriza señales de entrypoint, rutas, render de templates o arranque del servidor.
+- Si el archivo cabe, lo mete completo en `llm_context_bundle.json`; si no, lo resume en forma estructurada.
 
-## Cómo usar el contexto con el LLM
+### Cómo usar el contexto con el LLM
 
 Toma `llm_context_prompt.txt` o `llm_context_bundle.json` y úsalo para pedir algo como:
 
-- “redacta un README preliminar”
-- “hazme antecedentes del proyecto”
-- “resume el stack y la estructura actual”
-- “propón quick wins y plan de refactor”
-- “explica el archivo principal y sus riesgos”
+- "redacta un README preliminar"
+- "hazme antecedentes del proyecto"
+- "resume el stack y la estructura actual"
+- "propón quick wins y plan de refactor"
+- "explica el archivo principal y sus riesgos"
 
-## Instalación
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-```
-
-## Uso
+### Escáner de repos de GitHub
 
 ```bash
-# Analizar un repo local
-./run_demo.sh /ruta/al/repositorio
-# o directamente:
-python analyze_repo.py /ruta/al/repositorio --print-report
-
-# Escáner de GitHub (requiere .env con GITHUB_TOKEN)
+cp .env.example .env   # completa GITHUB_TOKEN y config
 ./run_scan.sh scan
 ```
 
-## Tests
+## Configuración
+
+### LLM opcional del analizador local
 
 ```bash
+export REPO_AGENT_LLM_ENDPOINT="http://127.0.0.1:8080"
+export REPO_AGENT_LLM_MODEL="qwen2.5-7b-instruct"
+```
+
+Variable | Descripción
+---|---
+`REPO_AGENT_LLM_ENDPOINT` | URL base del endpoint OpenAI-compatible (llama.cpp server) |
+`REPO_AGENT_LLM_MODEL` | Modelo a consultar |
+`REPO_AGENT_LLM_API_KEY` | API key opcional del endpoint |
+
+Si el endpoint no responde, el diagnóstico base igual se genera.
+
+### Escáner GitHub (ver `.env.example`)
+
+Variable | Descripción
+---|---
+`GITHUB_TOKEN` | Token de GitHub (PAT) |
+`GITHUB_SCAN_MODE` | Modo de escaneo (`authenticated`, etc.) |
+`GITHUB_OWNER` | Owner cuyos repos se escanean |
+`GITHUB_INCLUDE_ARCHIVED` / `GITHUB_INCLUDE_FORKS` | Include archival/forks |
+`GITHUB_PER_PAGE` / `GITHUB_MAX_REPOS` | Paginación y límite de repos |
+`GITHUB_API_VERSION` / `GITHUB_API_BASE_URL` | Versión y base de la API |
+`GITHUB_REPO_ALLOWLIST` | Allowlist de repos (por nombre) |
+`LLM_ENABLED` | Activa el LLM opcional |
+`LLM_BASE_URL`, `LLM_CHAT_PATH`, `LLM_MODEL` | Endpoint del modelo |
+`LLM_TIMEOUT_SECONDS`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS` | Parámetros del LLM |
+`OUTPUT_DIR` | Directorio de salida de reportes |
+`REPORT_TIMESTAMP_OVERRIDE` | Sobrescribe el timestamp del reporte |
+
+## Tests / CI
+
+```bash
+pip install -e ".[dev]"
 pytest -q
+ruff check .
+mypy repo_agent src
 ```
 
 Cobertura (39 tests):
 
-- `tests/test_rules.py` — reglas del escáner GitHub (`src/repo_scanner_mvp/rules.py`).
+- `tests/test_rules.py` — reglas del escáner GitHub.
 - `tests/test_repo_scanner.py` — exclusión de ruido, conteos, árbol y archivos grandes.
 - `tests/test_repo_importance.py` — scoring y selección de archivo principal/satélite.
 - `tests/test_repo_budgeting.py` — presupuesto de tokens.
@@ -173,60 +236,19 @@ Cobertura (39 tests):
 - `tests/test_repo_llm_cli.py` — bundle, resumen LLM y flujo CLI.
 - `tests/test_repo_fixes.py` — detección unificada de tests, README raíz y entrypoints.
 
-Chequeos estáticos: `ruff check .` y `mypy repo_agent src`.
+GitHub Actions (`.github/workflows/ci.yml`) sobre Python 3.12 con tres jobs independientes: `lint` (ruff), `typecheck` (mypy) y `test` (pytest).
 
-## CI
+## Roadmap
 
-GitHub Actions (`.github/workflows/ci.yml`) sobre Python 3.12:
+- [x] Diagnóstico local con selección de archivo principal y satélites bajo presupuesto
+- [x] Resumen LLM opcional y bundle de contexto exportable
+- [x] Escáner de repos de GitHub con reporte por repo
+- [ ] Ejecutar linters y tests reales si existen (ruff, pytest, eslint, semgrep)
+- [ ] Detección de dependencias y entrypoints por lenguaje
+- [ ] Patch generator para quick wins seguros con validación
+- [ ] Parsing AST profundo y entendimiento de reglas de negocio
 
-- **lint** — `ruff check .`
-- **typecheck** — `mypy repo_agent src`
-- **test** — `pytest -q` (31 tests)
-
-## LLM opcional por endpoint compatible OpenAI
-
-Si quieres que el propio MVP consulte un modelo local, por ejemplo `llama.cpp server`, exporta:
-
-```bash
-export REPO_AGENT_LLM_ENDPOINT="http://127.0.0.1:8080"
-export REPO_AGENT_LLM_MODEL="qwen2.5-7b-instruct"
-```
-
-Luego ejecuta el análisis normalmente. Si el endpoint no responde, el diagnóstico base igual se genera.
-
-## Limitaciones actuales
-
-Este MVP todavía no:
-
-- aplica patches automáticamente
-- corre `ruff`, `pytest`, `eslint` o `semgrep`
-- crea commits o PRs
-- hace parsing AST profundo
-- entiende reglas de negocio del proyecto
-
-## Camino natural de mejora
-
-### Iteración 4
-
-- ejecutar linters y tests reales si existen
-- agregar detección de dependencias y entrypoints por lenguaje
-- sumar patch generator para quick wins seguros
-- branch temporal y validación antes de patch
-
-## Escáner de repos de GitHub (segunda herramienta)
-
-Este repositorio incluye además `src/repo_scanner_mvp/`, un escáner que recorre
-los repos de un owner de GitHub y genera un reporte de estado/riesgo por repo.
-
-```bash
-cp .env.example .env   # completa GITHUB_TOKEN y config
-./run_scan.sh scan
-```
-
-Variables relevantes (ver `.env.example`): `GITHUB_TOKEN`, `GITHUB_OWNER`,
-`GITHUB_SCAN_MODE`, `GITHUB_REPO_ALLOWLIST`, `GITHUB_API_VERSION`,
-`GITHUB_API_BASE_URL`, así como la config del LLM opcional (`LLM_*`) y
-`OUTPUT_DIR`/`REPORT_TIMESTAMP_OVERRIDE`.
+Limitaciones actuales: no aplica patches automáticamente, no corre linters/tests reales del proyecto, no crea commits/PRs y no hace parsing AST profundo.
 
 ## Licencia
 

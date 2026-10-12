@@ -12,12 +12,11 @@ from .models import AgentState, RepoFacts, ToolResult
 from .reporter import build_markdown_report, write_outputs
 from .scanner import (
     build_tree_preview,
-    count_dirs,
-    count_excluded_files,
     extension_counts,
     is_test_file,
     iter_repo_files,
     largest_files,
+    walk_stats,
 )
 
 
@@ -26,11 +25,12 @@ def build_repo_facts(root: Path, extra_excludes: set[str] | None = None, tree_de
     ext_counts = extension_counts(all_files)
     stack = detect_stack(root, all_files)
     root_files_count = sum(1 for p in all_files if p.parent == root)
+    total_dirs, noise_files_excluded = walk_stats(root, extra_excludes)
 
     facts = RepoFacts(
         root_path=str(root.resolve()),
         total_files=len(all_files),
-        total_dirs=count_dirs(root, extra_excludes),
+        total_dirs=total_dirs,
         root_files_count=root_files_count,
         technologies=stack["technologies"],
         frameworks=stack["frameworks"],
@@ -53,7 +53,7 @@ def build_repo_facts(root: Path, extra_excludes: set[str] | None = None, tree_de
         largest_files=largest_files(all_files, root, limit=10),
         directory_tree_preview=build_tree_preview(root, max_depth=tree_depth, max_entries_per_dir=12, extra_excludes=extra_excludes),
         notable_entrypoints=list(stack["notable_entrypoints"]),
-        noise_files_excluded=count_excluded_files(root, extra_excludes),
+        noise_files_excluded=noise_files_excluded,
         scan_notes=list(stack["scan_notes"]),
     )
     return facts, all_files

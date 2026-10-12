@@ -94,34 +94,34 @@ def iter_repo_files(root: Path, extra_excludes: set[str] | None = None) -> Itera
 
 
 def count_dirs(root: Path, extra_excludes: set[str] | None = None) -> int:
-    excluded = _excluded_dirs(extra_excludes)
-    total = 0
-    for current_root, dirs, _ in os.walk(root):
-        current_path = Path(current_root)
-        dirs[:] = [d for d in dirs if d not in excluded]
-        if should_exclude(current_path, root, extra_excludes):
-            continue
-        total += len(dirs)
-    return total
+    return walk_stats(root, extra_excludes)[0]
 
 
 def count_excluded_files(root: Path, extra_excludes: set[str] | None = None) -> int:
+    return walk_stats(root, extra_excludes)[1]
+
+
+def walk_stats(root: Path, extra_excludes: set[str] | None = None) -> tuple[int, int]:
+    """Recorre el árbol una sola vez y devuelve (directorios considerados, archivos/dirs excluidos)."""
     excluded = _excluded_dirs(extra_excludes)
-    total = 0
+    kept_dirs_total = 0
+    excluded_count = 0
     for current_root, dirs, files in os.walk(root):
         current_path = Path(current_root)
-        keep_dirs = []
+        if should_exclude(current_path, root, extra_excludes):
+            continue
+        kept: list[str] = []
         for d in dirs:
             if d in excluded:
-                total += 1
+                excluded_count += 1
             else:
-                keep_dirs.append(d)
-        dirs[:] = keep_dirs
+                kept.append(d)
+        dirs[:] = kept
+        kept_dirs_total += len(dirs)
         for name in files:
-            file_path = current_path / name
-            if should_exclude(file_path, root, extra_excludes):
-                total += 1
-    return total
+            if should_exclude(current_path / name, root, extra_excludes):
+                excluded_count += 1
+    return kept_dirs_total, excluded_count
 
 
 def extension_counts(files: Iterable[Path]) -> dict[str, int]:
@@ -188,7 +188,8 @@ def build_tree_preview(
 
 def read_text_file(path: Path, max_bytes: int = 150_000) -> str:
     try:
-        raw = path.read_bytes()[:max_bytes]
+        with path.open("rb") as fh:
+            raw = fh.read(max_bytes)
         return raw.decode("utf-8", errors="ignore")
     except OSError:
         return ""

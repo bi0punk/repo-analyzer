@@ -67,6 +67,18 @@ def build_llm_project_brief(repo_facts: RepoFacts, findings: list[Finding]) -> d
     }
 
 
+def _file_payload(candidate: dict[str, Any], budget_tokens: int) -> dict[str, Any]:
+    payload = build_file_payload(
+        relative_path=candidate["path"],
+        content=candidate["content"],
+        budget_tokens=budget_tokens,
+    )
+    payload["importance_score"] = candidate["score"]
+    payload["line_count"] = candidate["line_count"]
+    payload["char_count"] = candidate["char_count"]
+    return payload
+
+
 def build_llm_context_bundle(
     repo_facts: RepoFacts,
     findings: list[Finding],
@@ -82,16 +94,7 @@ def build_llm_context_bundle(
     secondary_budget = compute_budget(max_input_tokens=max_input_tokens, ratio=secondary_budget_ratio)
 
     primary_candidate = select_primary_file(root, files)
-    primary_file = None
-    if primary_candidate:
-        primary_file = build_file_payload(
-            relative_path=primary_candidate["path"],
-            content=primary_candidate["content"],
-            budget_tokens=primary_budget,
-        )
-        primary_file["importance_score"] = primary_candidate["score"]
-        primary_file["line_count"] = primary_candidate["line_count"]
-        primary_file["char_count"] = primary_candidate["char_count"]
+    primary_file = _file_payload(primary_candidate, primary_budget) if primary_candidate else None
 
     secondary_files = []
     secondary_candidates = select_supporting_files(
@@ -101,15 +104,7 @@ def build_llm_context_bundle(
         max_files=max_secondary_files,
     )
     for candidate in secondary_candidates:
-        payload = build_file_payload(
-            relative_path=candidate["path"],
-            content=candidate["content"],
-            budget_tokens=secondary_budget,
-        )
-        payload["importance_score"] = candidate["score"]
-        payload["line_count"] = candidate["line_count"]
-        payload["char_count"] = candidate["char_count"]
-        secondary_files.append(payload)
+        secondary_files.append(_file_payload(candidate, secondary_budget))
 
     bundle = {
         "repo": project_brief["repo"],

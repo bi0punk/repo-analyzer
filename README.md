@@ -5,6 +5,7 @@ MVP funcional para diagnosticar repositorios locales y preparar un paquete de co
 [![CI](https://github.com/bi0punk/repo-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/bi0punk/repo-analyzer/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![GHCR](https://img.shields.io/badge/ghcr.io%2Fbi0punk%2Frepo--analyzer-2496ED?logo=docker)](https://github.com/bi0punk/repo-analyzer/pkgs/container/repo-analyzer)
 
 ## Contenido
 
@@ -14,6 +15,8 @@ MVP funcional para diagnosticar repositorios locales y preparar un paquete de co
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Instalación](#instalación)
 - [Uso](#uso)
+- [GitHub Action](#github-action)
+- [Docker](#docker)
 - [Configuración](#configuración)
 - [Tests / CI](#tests--ci)
 - [Roadmap](#roadmap)
@@ -183,6 +186,29 @@ cp .env.example .env   # completa GITHUB_TOKEN y config
 ./run_scan.sh          # = repo-analyzer scan
 ```
 
+## GitHub Action
+
+```yaml
+- uses: actions/checkout@v4
+- uses: bi0punk/repo-analyzer@v1
+  with:
+    path: .
+    output-dir: reports
+```
+
+Genera `reports/repo_diagnostic.md` (más JSON y bundle de contexto) y lo sube
+como artefacto del workflow. Inputs: `path`, `output-dir`,
+`llm-max-input-tokens` y `upload-artifact`. Ejemplo en
+[`examples/analyze-workflow.yml`](examples/analyze-workflow.yml).
+
+## Docker
+
+```bash
+docker run --rm -v "$PWD:/work" ghcr.io/bi0punk/repo-analyzer analyze /work
+```
+
+La imagen corre como uid 10001; monta el repo en `/work`.
+
 ## Configuración
 
 ### LLM opcional del analizador local
@@ -220,25 +246,34 @@ Variable | Descripción
 ## Tests / CI
 
 ```bash
-pip install -e ".[dev]"
-pytest -q
+pytest -q --cov=repo_agent --cov=repo_scanner_mvp --cov-fail-under=65
 ruff check .
 mypy repo_agent src
+vulture repo_agent src/repo_scanner_mvp --min-confidence 70
 bandit -q -r repo_agent src/repo_scanner_mvp
 ```
 
-Cobertura (46 tests):
+**48 tests**, cobertura **68 %** (gate 65 %). CI
+(`.github/workflows/ci.yml`) sobre `dev`, `main` y tags:
+
+| Job | Qué hace |
+|---|---|
+| `quality` | ruff, mypy, vulture y bandit |
+| `test (3.12 / 3.13)` | pytest + cobertura (gate 65 %) |
+| `audit` | `pip-audit` sobre las dependencias |
+| `docker` | build y publicación en GHCR en `main`/tags |
+
+Cobertura por área:
 
 - `tests/test_rules.py` — reglas del escáner GitHub.
-- `tests/test_repo_scanner.py` — exclusión de ruido, conteos, árbol y archivos grandes.
-- `tests/test_repo_importance.py` — scoring y selección de archivo principal/satélite.
+- `tests/test_repo_scanner.py` — ruido, conteos, árbol y archivos grandes.
+- `tests/test_repo_importance.py` — scoring y selección principal/satélite.
 - `tests/test_repo_budgeting.py` — presupuesto de tokens.
-- `tests/test_repo_context_builder.py` — resumen de archivos y payload del bundle.
-- `tests/test_repo_llm_cli.py` — bundle, resumen LLM y flujo CLI.
-- `tests/test_repo_fixes.py` — detección unificada de tests, README raíz y entrypoints.
-- `tests/test_repo_shared_llm_cli.py` — cliente LLM compartido, validación de esquema y CLI unificada.
-
-GitHub Actions (`.github/workflows/ci.yml`) sobre Python 3.12 con cuatro jobs: `lint` (ruff), `typecheck` (mypy), `security` (bandit + vulture) y `test` (pytest). Corre sobre `dev` y `main`.
+- `tests/test_repo_context_builder.py` — resumen y bundle.
+- `tests/test_repo_llm_cli.py` — bundle, resumen LLM y CLI.
+- `tests/test_repo_fixes.py` — tests, README raíz y entrypoints.
+- `tests/test_repo_shared_llm_cli.py` — cliente LLM compartido.
+- `tests/test_action_metadata.py` — contrato de `action.yml` y CLI punta a punta.
 
 ## Roadmap
 

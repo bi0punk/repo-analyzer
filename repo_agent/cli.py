@@ -5,6 +5,7 @@ import os
 import sys
 from pathlib import Path
 
+from . import __version__
 from .analyzers import RepoAnalyzer
 from .detectors import detect_languages_from_extensions, detect_stack
 from .llm import build_llm_context_bundle, build_llm_project_brief, maybe_generate_llm_summary
@@ -247,6 +248,7 @@ def main(argv: list[str] | None = None) -> int:
     scan_parser = subparsers.add_parser("scan", help="Escaneo de repos de GitHub con reporte de estado/riesgo")
     _add_scan_args(scan_parser)
 
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args(argv)
 
     try:

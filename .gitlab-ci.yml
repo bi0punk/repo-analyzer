@@ -67,7 +67,7 @@ deploy:
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   tags:
-    - [local]
+    - local
   script:
     - docker build -t repo-analyzer:local .
     - docker run --rm repo-analyzer:local --version

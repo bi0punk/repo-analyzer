@@ -2,7 +2,6 @@
 
 MVP funcional para diagnosticar repositorios locales y preparar un paquete de contexto útil para un LLM. Incluye además un escáner de repos de GitHub con reporte de estado/riesgo por repo.
 
-[![CI](https://github.com/bi0punk/repo-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/bi0punk/repo-analyzer/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![GHCR](https://img.shields.io/badge/ghcr.io%2Fbi0punk%2Frepo--analyzer-2496ED?logo=docker)](https://github.com/bi0punk/repo-analyzer/pkgs/container/repo-analyzer)
@@ -253,15 +252,11 @@ vulture repo_agent src/repo_scanner_mvp --min-confidence 70
 bandit -q -r repo_agent src/repo_scanner_mvp
 ```
 
-**50 tests**, cobertura **69 %** (gate 65 %). CI
-(`.github/workflows/ci.yml`) sobre `dev`, `main` y tags:
+**50 tests**, cobertura **69 %** (gate 65 %).
 
-| Job | Qué hace |
-|---|---|
-| `quality` | ruff, mypy, vulture y bandit |
-| `test (3.12 / 3.13)` | pytest + cobertura (gate 65 %) |
-| `audit` | `pip-audit` sobre las dependencias |
-| `docker` | build y publicación en GHCR en `main`/tags |
+GitHub solo aloja el código. La integración continua y el despliegue se
+ejecutan en GitLab/entorno local; los workflows de `.github/` están
+deshabilitados en GitHub. La validación es la de la sección anterior.
 
 Cobertura por área:
 

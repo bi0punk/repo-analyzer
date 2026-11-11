@@ -205,7 +205,9 @@ como artefacto del workflow. Inputs: `path`, `output-dir`,
 docker run --rm -v "$PWD:/work" ghcr.io/bi0punk/repo-analyzer analyze /work
 ```
 
-La imagen corre como uid 10001 y usa Python 3.15; monta el repo en `/work`.
+La imagen de GHCR corresponde a la **versión 1.0.0** (histórico). Para
+construirla en local: `docker build -t repo-analyzer .`. Corre como uid 10001,
+usa Python 3.15 y monta el repo en `/work`.
 
 ## Configuración
 

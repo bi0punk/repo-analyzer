@@ -1,0 +1,22 @@
+name: Analizar repositorio
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyzer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repo Analyzer
+        uses: bi0punk/repo-analyzer@v1
+        with:
+          path: .
+          output-dir: reports
+      - name: Mostrar informe
+        run: head -n 40 reports/repo_diagnostic.md

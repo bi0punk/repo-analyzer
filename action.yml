@@ -50,7 +50,7 @@ runs:
 
     - name: Subir artefacto
       if: inputs.upload-artifact == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: repo-analyzer-report
         path: ${{ inputs.output-dir }}

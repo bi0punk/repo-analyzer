@@ -207,7 +207,7 @@ como artefacto del workflow. Inputs: `path`, `output-dir`,
 docker run --rm -v "$PWD:/work" ghcr.io/bi0punk/repo-analyzer analyze /work
 ```
 
-La imagen corre como uid 10001; monta el repo en `/work`.
+La imagen corre como uid 10001 y usa Python 3.15; monta el repo en `/work`.
 
 ## Configuración
 
@@ -253,7 +253,7 @@ vulture repo_agent src/repo_scanner_mvp --min-confidence 70
 bandit -q -r repo_agent src/repo_scanner_mvp
 ```
 
-**48 tests**, cobertura **68 %** (gate 65 %). CI
+**50 tests**, cobertura **69 %** (gate 65 %). CI
 (`.github/workflows/ci.yml`) sobre `dev`, `main` y tags:
 
 | Job | Qué hace |

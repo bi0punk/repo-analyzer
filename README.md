@@ -107,7 +107,6 @@ repo-analyzer/
 ├── run_demo.sh                 # repo-analyzer analyze de demo
 ├── run_scan.sh                 # repo-analyzer scan
 ├── tests/                      # 46 tests
-├── .gitlab-ci.yml              # CI/CD en GitLab
 ├── .env.example
 ├── pyproject.toml
 ├── LICENSE
@@ -254,9 +253,9 @@ bandit -q -r repo_agent src/repo_scanner_mvp
 
 **50 tests**, cobertura **69 %** (gate 65 %).
 
-GitHub solo aloja el código. La integración continua está en `.gitlab-ci.yml`
-(GitLab) y el despliegue se ejecuta en el entorno local con Docker Compose.
-La validación equivalente en local es la de la sección anterior.
+GitHub solo aloja el código. El CI/CD de los proyectos desplegados vive en el
+GitLab interno; este repositorio no ejecuta pipelines. La validación local es
+la de la sección anterior.
 
 Cobertura por área:
 

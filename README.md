@@ -106,7 +106,7 @@ repo-analyzer/
 │   └── utils.py
 ├── run_demo.sh                 # repo-analyzer analyze de demo
 ├── run_scan.sh                 # repo-analyzer scan
-├── tests/                      # 46 tests
+├── tests/                      # 50 tests
 ├── .env.example
 ├── pyproject.toml
 ├── LICENSE
